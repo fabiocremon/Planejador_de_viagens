@@ -221,6 +221,41 @@
     desenharSalvas();
   });
 
+  // ----- Busca no Google Flights -----
+  var campoBusca = ['bOrigem', 'bDestino', 'bIda', 'bVolta'];
+  var busca = App.ler('milhas_busca', {});
+  campoBusca.forEach(function (c) { if (busca[c]) $(c).value = busca[c]; });
+
+  function textoBusca(msg) { $('buscaMsg').textContent = msg; }
+
+  $('abrirGoogle').addEventListener('click', function () {
+    var o = $('bOrigem').value.trim().toUpperCase();
+    var d = $('bDestino').value.trim().toUpperCase();
+    var ida = $('bIda').value;
+    var volta = $('bVolta').value;
+    var guardar = {};
+    campoBusca.forEach(function (c) { guardar[c] = $(c).value; });
+    App.gravar('milhas_busca', guardar);
+
+    if (!/^[A-Z]{3}$/.test(o) || !/^[A-Z]{3}$/.test(d)) {
+      textoBusca('Informe origem e destino com 3 letras (ex.: GRU e LIM).');
+      return;
+    }
+    if (!ida) { textoBusca('Informe a data de ida.'); return; }
+    if (volta && volta < ida) { textoBusca('A volta não pode ser antes da ida.'); return; }
+
+    var consulta = 'Flights to ' + d + ' from ' + o + ' on ' + ida + (volta ? ' through ' + volta : ' one way');
+    var url = 'https://www.google.com/travel/flights?q=' + encodeURIComponent(consulta) + '&curr=BRL&hl=pt-BR';
+    window.open(url, '_blank', 'noopener');
+
+    // Já deixa fonte e data da consulta preenchidas para a comparação.
+    el.fonte.value = 'Google Flights (' + o + ' → ' + d + ', ' + App.data(ida) + (volta ? ' a ' + App.data(volta) : ', só ida') + ')';
+    el.consulta.value = new Date().toISOString().slice(0, 10);
+    if (!$('nome').value.trim()) $('nome').value = o + ' → ' + d + ' · ' + App.data(ida);
+    atualizar();
+    textoBusca('Google Flights aberto. Copie o preço e cole em "Preço em dinheiro".');
+  });
+
   desenharSalvas();
   atualizar();
 })();

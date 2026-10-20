@@ -17,6 +17,23 @@
       <p class="sub">Compare os dois cenários lado a lado e decida.</p>
     </div>
 
+    <section class="card" aria-label="Buscar voo no Google Flights" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+        <h2>Buscar voo no Google Flights</h2>
+        <span class="muted">Abre a busca pronta. Depois copie o preço para o campo abaixo.</span>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label for="bOrigem">Origem (código do aeroporto)</label><input id="bOrigem" maxlength="3" placeholder="ex.: GRU" autocomplete="off" style="text-transform:uppercase"></div>
+        <div class="field"><label for="bDestino">Destino (código do aeroporto)</label><input id="bDestino" maxlength="3" placeholder="ex.: LIM" autocomplete="off" style="text-transform:uppercase"></div>
+        <div class="field"><label for="bIda">Ida</label><input id="bIda" type="date"></div>
+        <div class="field"><label for="bVolta">Volta (vazio = só ida)</label><input id="bVolta" type="date"></div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        <button class="btn" type="button" id="abrirGoogle">Abrir no Google Flights</button>
+        <span class="hint" id="buscaMsg" role="status">Passageiros e filtros você ajusta na página do Google Flights.</span>
+      </div>
+    </section>
+
     <div class="cols">
       <section class="card" aria-label="Dados da passagem" style="flex:1 1 320px;display:flex;flex-direction:column;gap:16px">
         <h2>Dados da passagem</h2>
