@@ -3,7 +3,7 @@
 ## Sobre o projeto
 - **Nome:** Planejador de viagens
 - **Descrição:** Compilado de ferramentas para planejar viagens nacionais e internacionais, de uso pessoal e da família. Reúne roteiros, orçamento, reservas e documentos, comparação de destinos e cálculo de milhas.
-- **Tipo:** A definir. Ainda estamos conhecendo o projeto; não assuma site, app ou automação até eu decidir.
+- **Tipo:** Site que roda no navegador, em HTML/CSS/JS puro, sem servidor. Dados salvos só no navegador (localStorage).
 - **Público:** Eu e minha família. Não é um produto público.
 
 ## Contexto
@@ -53,7 +53,10 @@ Suportar **tema claro e escuro** (alternância manual + respeitar `prefers-color
 ## Estrutura do projeto
 - **Pasta principal:** `C:\Users\inss\OneDrive - INSS\Documentos\Claude\Planejador de viagens`
 - **Deploy:** nenhum por enquanto. Tudo roda localmente / fica no OneDrive.
-- **Ferramentas:** a definir junto com o tipo do projeto. Prefira soluções simples (HTML/CSS/JS puro, Markdown, planilhas) até eu decidir.
+- **Ferramentas:** HTML/CSS/JS puro, sem frameworks. Abrir `index.html` no navegador.
+- **Arquivos:** `index.html` (painel), `roteiro.html`, `milhas.html`, `css/estilo.css` (tema e componentes), `js/app.js` (tema, menu, armazenamento), `js/painel.js`, `js/roteiro.js`, `js/milhas.js`.
+- **Convenções:** cores só por variáveis CSS; texto digitado pelo usuário entra na tela com `textContent` (nunca `innerHTML`); número no formato brasileiro via `App.num`.
+- **Pendente:** orçamento, reservas/documentos e comparar destinos ainda não existem.
 - Organize por viagem quando houver mais de uma (ex.: uma subpasta por destino e ano).
 
 ## O que Claude NUNCA deve fazer

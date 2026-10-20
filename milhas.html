@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Milhas x dinheiro — Planejador de viagens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body data-pagina="milhas">
+<div class="app">
+  <aside class="side" id="lateral"></aside>
+  <main class="main">
+    <div>
+      <h1>Milhas x dinheiro</h1>
+      <p class="sub">Compare os dois cenários lado a lado e decida.</p>
+    </div>
+
+    <div class="cols">
+      <section class="card" aria-label="Dados da passagem" style="flex:1 1 320px;display:flex;flex-direction:column;gap:16px">
+        <h2>Dados da passagem</h2>
+        <div class="field"><label for="prog">Programa</label><select id="prog"></select></div>
+        <div class="field"><label for="din">Preço em dinheiro (R$)</label><input id="din" inputmode="decimal" placeholder="ex.: 2.400,00" autocomplete="off"></div>
+        <div class="field"><label for="mil">Milhas necessárias</label><input id="mil" inputmode="numeric" placeholder="ex.: 60.000" autocomplete="off"></div>
+        <div class="field"><label for="tax">Taxas em R$ (pagando com milhas)</label><input id="tax" inputmode="decimal" placeholder="ex.: 180,00" autocomplete="off"></div>
+        <div class="field"><label for="cus">Meu custo do milheiro (R$)</label><input id="cus" inputmode="decimal" placeholder="ex.: 20,00" autocomplete="off"><span class="hint">Quanto você pagou, em média, por 1.000 milhas. Você informa; nada é presumido.</span></div>
+        <div class="field"><label for="fonte">Fonte do preço</label><input id="fonte" placeholder="site ou companhia aérea" autocomplete="off"></div>
+        <div class="field"><label for="consulta">Data da consulta</label><input id="consulta" type="date"></div>
+        <button class="btn link" type="button" id="limpar" style="align-self:flex-start">Limpar campos</button>
+      </section>
+
+      <div style="flex:2 1 460px;min-width:0;display:flex;flex-direction:column;gap:20px">
+        <div id="avisos" class="aviso hidden" role="status"></div>
+        <div class="cols" style="align-items:stretch">
+          <section class="card" id="cardMilhas" aria-label="Cenário com milhas" style="flex:1 1 220px">
+            <span class="tag">Pagando com milhas</span>
+            <div class="big" id="rMilhasTotal" style="margin:12px 0 2px">—</div>
+            <div class="muted">custo equivalente</div>
+            <div class="row" style="margin-top:14px"><span class="muted">Milhas</span><strong id="rMilhas">—</strong></div>
+            <div class="row"><span class="muted">Milhas em R$</span><strong id="rMilhasReais">—</strong></div>
+            <div class="row"><span class="muted">Taxas</span><strong id="rTaxas">—</strong></div>
+          </section>
+          <section class="card" id="cardDinheiro" aria-label="Cenário em dinheiro" style="flex:1 1 220px">
+            <span class="tag" style="background:var(--bg);color:var(--muted);border:1px solid var(--border)">Pagando em dinheiro</span>
+            <div class="big" id="rDinheiro" style="margin:12px 0 2px">—</div>
+            <div class="muted">preço da passagem</div>
+            <div class="row" style="margin-top:14px"><span class="muted">Milhas gastas</span><strong>0</strong></div>
+            <div class="row"><span class="muted">Taxas</span><strong>incluídas</strong></div>
+            <div class="row"><span class="muted">Mantém seu saldo</span><strong>sim</strong></div>
+          </section>
+        </div>
+
+        <section class="verdict" aria-label="Resultado" aria-live="polite">
+          <div>
+            <div class="muted" style="color:var(--accent-text);font-weight:600">Resultado do cálculo</div>
+            <div id="rTitulo" style="font-size:20px;font-weight:700;margin-top:4px">Preencha os dados para comparar</div>
+            <div class="muted" id="rNota" style="margin-top:4px">A decisão é sua. Confira o saldo e a validade antes de emitir.</div>
+          </div>
+          <div style="text-align:right">
+            <div class="muted">Valor obtido por milheiro</div>
+            <div id="rMilheiro" style="font-size:26px;font-weight:700">—</div>
+          </div>
+        </section>
+
+        <section class="card" aria-label="Fonte e data">
+          <div class="row first"><span class="muted" id="rConsulta">Preço consultado em: —</span><span class="muted" id="rFonte">Fonte: —</span></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="js/app.js"></script>
+<script src="js/milhas.js"></script>
+</body>
+</html>

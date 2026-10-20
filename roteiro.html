@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roteiro — Planejador de viagens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body data-pagina="roteiro">
+<div class="app">
+  <aside class="side" id="lateral"></aside>
+  <main class="main">
+    <div>
+      <h1 id="titulo">Roteiro</h1>
+      <p class="sub" id="subtitulo">Monte o dia a dia da viagem.</p>
+    </div>
+
+    <div class="tabs" id="abas" role="group" aria-label="Dias da viagem"></div>
+
+    <div class="cols">
+      <div style="flex:2 1 460px;min-width:0;display:flex;flex-direction:column;gap:20px">
+        <section class="card" aria-label="Atividades do dia">
+          <div class="row first" style="padding-top:0"><h2 id="tituloDia">Dia 1</h2><button class="btn link" type="button" id="removerDia">Remover dia</button></div>
+          <div id="lista"></div>
+          <p class="muted hidden" id="vazio" style="margin:0">Nenhuma atividade neste dia ainda.</p>
+        </section>
+
+        <form class="card" id="form" aria-label="Adicionar atividade" style="display:flex;flex-direction:column;gap:14px">
+          <h2>Adicionar atividade</h2>
+          <div class="form-grid">
+            <div class="field"><label for="hora">Horário (24h)</label><input id="hora" type="time"></div>
+            <div class="field"><label for="tipo">Tipo</label>
+              <select id="tipo"><option>Voo</option><option>Hospedagem</option><option selected>Passeio</option><option>Refeição</option><option>Transporte</option><option>Outro</option></select></div>
+            <div class="field"><label for="custo">Custo (R$)</label><input id="custo" inputmode="decimal" placeholder="opcional"></div>
+          </div>
+          <div class="field"><label for="ativTitulo">O que é</label><input id="ativTitulo" required placeholder="ex.: nome da atração ou do restaurante" autocomplete="off"></div>
+          <div class="field"><label for="detalhe">Detalhes</label><input id="detalhe" placeholder="endereço, confirmação, horário de funcionamento…" autocomplete="off"></div>
+          <button class="btn" type="submit" style="align-self:flex-start">Adicionar ao dia</button>
+        </form>
+      </div>
+
+      <aside style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:20px">
+        <section class="card" aria-label="Custos">
+          <h2>Custos</h2>
+          <div class="row" style="margin-top:10px"><span class="muted">Total do dia</span><strong id="totalDia">R$ 0,00</strong></div>
+          <div class="row"><span class="muted">Total da viagem</span><strong id="totalViagem" style="color:var(--accent-text)">R$ 0,00</strong></div>
+          <p class="hint" style="margin:8px 0 0">Soma só o que você informou. Confirme preços na fonte antes de reservar.</p>
+        </section>
+        <section class="card" aria-label="Lembretes">
+          <h2>Lembretes</h2>
+          <p class="muted" style="margin:10px 0 0;line-height:1.5">Documentos, seguro-viagem, câmbio, chip ou roaming e previsão do tempo.</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+<script src="js/app.js"></script>
+<script src="js/roteiro.js"></script>
+</body>
+</html>
