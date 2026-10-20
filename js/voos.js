@@ -250,21 +250,46 @@
     return cart;
   }
 
-  // ----- Últimas buscas -----
-  function resumoPreco(b) {
-    if (!b.registros.length) return 'Sem preço registrado';
-    var ultimo = {};
-    var maisRecente = '';
+  // ----- Últimas rotas: por dia de consulta, o preço de cada dia de voo -----
+  function consultasDaRota(b) {
+    // último preço registrado de cada dia de voo em cada dia de consulta
+    var porEm = {};
     b.registros.forEach(function (r) {
-      ultimo[r.em + '|' + r.voo] = r;
-      if (r.em > maisRecente) maisRecente = r.em;
+      porEm[r.em] = porEm[r.em] || {};
+      porEm[r.em][r.voo] = r;
     });
-    var menor = null;
-    Object.keys(ultimo).forEach(function (k) {
-      var r = ultimo[k];
-      if (r.em === maisRecente && (!menor || r.preco < menor.preco)) menor = r;
+    var ems = Object.keys(porEm).sort();
+    return ems.map(function (em, i) {
+      var linhas = Object.keys(porEm[em]).sort().map(function (voo) {
+        var r = porEm[em][voo];
+        // preço anterior do mesmo dia de voo, em consulta mais antiga
+        var anterior = null;
+        for (var j = i - 1; j >= 0 && !anterior; j--) anterior = porEm[ems[j]][voo] || null;
+        return { voo: voo, preco: r.preco, fonte: r.fonte, dif: anterior ? r.preco - anterior.preco : null };
+      });
+      return { em: em, linhas: linhas };
+    }).reverse(); // mais recente primeiro
+  }
+
+  function blocoConsulta(c) {
+    var bloco = criar('div', 'consulta-dia');
+    var menor = Math.min.apply(null, c.linhas.map(function (l) { return l.preco; }));
+    var tit = criar('div', 'consulta-titulo');
+    tit.appendChild(criar('strong', '', 'Consulta de ' + App.data(c.em)));
+    tit.appendChild(criar('span', 'muted', c.linhas.length + (c.linhas.length === 1 ? ' dia consultado' : ' dias consultados')));
+    bloco.appendChild(tit);
+    c.linhas.forEach(function (l) {
+      var linha = criar('div', 'consulta-linha');
+      linha.appendChild(criar('span', '', 'Voo em ' + App.data(l.voo)));
+      var dir = criar('span', '');
+      dir.style.cssText = 'display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;justify-content:flex-end';
+      if (l.dif) dir.appendChild(criar('span', 'hint', (l.dif < 0 ? 'caiu ' : 'subiu ') + App.brl(Math.abs(l.dif))));
+      if (c.linhas.length > 1 && l.preco === menor) dir.appendChild(criar('span', 'chip', 'menor do dia'));
+      dir.appendChild(criar('strong', '', App.brl(l.preco)));
+      linha.appendChild(dir);
+      bloco.appendChild(linha);
     });
-    return 'Menor preço em ' + App.data(maisRecente) + ': ' + App.brl(menor.preco) + ' (voo ' + App.data(menor.voo).slice(0, 5) + ')';
+    return bloco;
   }
 
   function desenharUltimas() {
@@ -272,11 +297,12 @@
     caixa.textContent = '';
     $('vazio').classList.toggle('hidden', buscas.length > 0);
     buscas.slice().reverse().forEach(function (b) {
-      var item = criar('div', 'viagem-item');
+      var rota = criar('div', 'rota');
+      var topo = criar('div', 'viagem-item');
+      topo.style.cssText = 'border-top:0;padding:0 0 8px';
       var info = criar('div', 'viagem-info');
       info.appendChild(criar('strong', '', nomeTrecho(b)));
       info.appendChild(criar('span', 'muted', 'Só ida · ' + App.data(b.de) + (b.de !== b.ate ? ' a ' + App.data(b.ate) : '') + ' · 1 adulto'));
-      info.appendChild(criar('span', 'muted', resumoPreco(b)));
       var acoes = criar('div', 'viagem-acoes');
       var refazer = criar('button', 'btn sec', 'Refazer busca');
       refazer.type = 'button';
@@ -284,17 +310,32 @@
       refazer.addEventListener('click', function () { abrirBusca(b.id); });
       var rem = criar('button', 'btn link', 'Remover');
       rem.type = 'button';
-      rem.setAttribute('aria-label', 'Remover a busca ' + nomeTrecho(b));
+      rem.setAttribute('aria-label', 'Remover a rota ' + nomeTrecho(b));
       rem.addEventListener('click', function () {
-        if (!confirm('Remover a busca ' + nomeTrecho(b) + ' e todo o histórico de preços dela?')) return;
+        if (!confirm('Remover a rota ' + nomeTrecho(b) + ' e todo o histórico de preços dela?')) return;
         buscas = buscas.filter(function (x) { return x.id !== b.id; });
         salvar(); desenhar();
       });
       acoes.appendChild(refazer);
       acoes.appendChild(rem);
-      item.appendChild(info);
-      item.appendChild(acoes);
-      caixa.appendChild(item);
+      topo.appendChild(info);
+      topo.appendChild(acoes);
+      rota.appendChild(topo);
+
+      var consultas = consultasDaRota(b);
+      if (!consultas.length) {
+        rota.appendChild(criar('p', 'muted', 'Nenhum preço registrado ainda. Use "Refazer busca" para consultar e registrar.'));
+      } else {
+        // As 3 consultas mais recentes ficam à vista; as anteriores, recolhidas.
+        consultas.slice(0, 3).forEach(function (c) { rota.appendChild(blocoConsulta(c)); });
+        if (consultas.length > 3) {
+          var det = criar('details', '');
+          det.appendChild(criar('summary', '', 'Ver consultas anteriores (' + (consultas.length - 3) + ')'));
+          consultas.slice(3).forEach(function (c) { det.appendChild(blocoConsulta(c)); });
+          rota.appendChild(det);
+        }
+      }
+      caixa.appendChild(rota);
     });
   }
 

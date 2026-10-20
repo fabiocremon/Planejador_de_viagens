@@ -20,7 +20,10 @@
     <section class="card" id="cardGrafico" aria-label="Evolução dos preços por trecho">
       <div class="row first" style="padding-top:0">
         <div><h2>Evolução dos preços por trecho</h2><span class="muted">Eixo horizontal: dia da consulta. Cada linha mostra o menor preço do trecho naquele dia.</span></div>
-        <button class="btn" type="button" id="novoTrecho">+ Novo trecho</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <a class="btn rota" id="consultaRotas" href="https://www.flightconnections.com/pt" target="_blank" rel="noopener noreferrer" title="Ver rotas e companhias no Flight Connections" aria-label="Consulta rotas no Flight Connections"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/></svg>Consulta rotas</a>
+          <button class="btn" type="button" id="novoTrecho">+ Novo trecho</button>
+        </div>
       </div>
       <p class="muted hidden" id="semGrafico" style="margin:12px 0 0">Registre o primeiro preço de um trecho para ver o gráfico.</p>
       <div class="legenda" id="legendaVoos" role="group" aria-label="Mostrar ou ocultar trechos"></div>
@@ -28,10 +31,10 @@
       <p class="hint hidden" id="avisoVoos"></p>
     </section>
 
-    <section class="card" aria-label="Últimas buscas">
-      <h2>Últimas buscas</h2>
+    <section class="card" aria-label="Últimas rotas">
+      <h2>Últimas rotas</h2>
       <div id="ultimas" style="margin-top:6px"></div>
-      <p class="muted hidden" id="vazio" style="margin:8px 0 0">Nenhum trecho pesquisado ainda. Use "Novo trecho".</p>
+      <p class="muted hidden" id="vazio" style="margin:8px 0 0">Nenhuma rota pesquisada ainda. Use "Novo trecho".</p>
     </section>
   </main>
 </div>

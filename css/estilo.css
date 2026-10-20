@@ -155,3 +155,12 @@ input.mini { min-height: 34px; padding: 0 8px; font-family: inherit; font-size: 
 /* Janela "Refazer busca" (Voos) */
 #dlgBusca { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
 dialog .card { border: 0; padding: 0; background: transparent; }
+
+/* Últimas rotas (Voos) */
+.rota { padding: 16px 0; border-top: 1px solid var(--border); }
+.rota:first-child { border-top: 0; padding-top: 4px; }
+.consulta-dia { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; margin-top: 8px; }
+.consulta-titulo { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; align-items: baseline; padding-bottom: 4px; }
+.consulta-linha { display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: space-between; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.rota details { margin-top: 8px; }
+.rota details .consulta-dia { margin-top: 8px; }
