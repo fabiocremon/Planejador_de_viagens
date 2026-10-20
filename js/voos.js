@@ -40,84 +40,77 @@
     else falha();
   }
 
-  var ocultasVoos = {}; // por busca: { idBusca: { 'AAAA-MM-DD': true } }
+  // ----- Gráfico único: uma linha por trecho (menor preço de cada dia de consulta) -----
+  var ocultosTrecho = {}; // idBusca -> true quando escondido
+  function nomeTrecho(b) { return b.origem + ' - ' + b.destino; }
 
-  // Último preço de cada data de voo em cada data de consulta.
-  function precosPorConsulta(b, vooDia) {
-    var porEm = {};
-    b.registros.forEach(function (r) {
-      if (vooDia && r.voo !== vooDia) return;
-      var chave = vooDia ? r.em : r.em + '|' + r.voo;
-      porEm[chave] = r;
-    });
-    return porEm;
-  }
+  function desenharGraficoGeral() {
+    var card = $('cardGrafico');
+    var comPreco = buscas.filter(function (b) { return b.registros.length; });
+    card.classList.toggle('hidden', !comPreco.length);
+    if (!comPreco.length) return;
 
-  function blocoGrafico(b, lista) {
-    var caixaTudo = criar('div', '');
-    caixaTudo.style.margin = '4px 0 12px';
-    caixaTudo.appendChild(criar('strong', '', 'Evolução do preço'));
-    caixaTudo.appendChild(criar('div', 'muted', 'Eixo horizontal: data em que você consultou. Cada linha é um dia de voo.'));
-    var ocultas = ocultasVoos[b.id] = ocultasVoos[b.id] || {};
+    // Colorir pela posição da busca (cor fixa por busca); a paleta tem 8 cores.
+    var visiveis = comPreco.slice(0, 8);
+    var repetido = {};
+    visiveis.forEach(function (b) { repetido[nomeTrecho(b)] = (repetido[nomeTrecho(b)] || 0) + 1; });
 
     var datas = {};
-    b.registros.forEach(function (r) { datas[r.em] = true; });
-    var datasOrd = Object.keys(datas).sort();
-
     var series = [];
-    var muitos = lista.length > 8; // a paleta tem 8 cores: acima disso, só o menor preço
-    if (muitos) {
-      var menor = {};
-      var ultimos = precosPorConsulta(b, null);
-      Object.keys(ultimos).forEach(function (k) {
-        var r = ultimos[k];
-        if (menor[r.em] == null || r.preco < menor[r.em]) menor[r.em] = r.preco;
+    visiveis.forEach(function (b) {
+      var indice = buscas.indexOf(b);
+      var nome = nomeTrecho(b);
+      if (repetido[nome] > 1) nome += ' (' + App.data(b.de).slice(0, 5) + (b.de !== b.ate ? '–' + App.data(b.ate).slice(0, 5) : '') + ')';
+      // último preço registrado de cada dia de voo em cada dia de consulta
+      var ultimo = {};
+      b.registros.forEach(function (r) { ultimo[r.em + '|' + r.voo] = r; });
+      var menorPorEm = {};
+      Object.keys(ultimo).forEach(function (k) {
+        var r = ultimo[k];
+        datas[r.em] = true;
+        if (!menorPorEm[r.em] || r.preco < menorPorEm[r.em].preco) menorPorEm[r.em] = r;
       });
-      series.push({ nome: 'Menor preço', cor: 'var(--s1)', pts: datasOrd.map(function (d) { return { data: d, v: menor[d] }; }) });
-    } else {
-      lista.forEach(function (dia, i) {
-        if (ocultas[dia]) return;
-        var ult = precosPorConsulta(b, dia);
-        var pts = Object.keys(ult).sort().map(function (em) { return { data: em, v: ult[em].preco }; });
-        if (pts.length) series.push({ nome: App.data(dia).slice(0, 5), cor: 'var(--s' + (i + 1) + ')', pts: pts });
+      var pts = Object.keys(menorPorEm).sort().map(function (em) {
+        var r = menorPorEm[em];
+        return { data: em, v: r.preco, nota: 'voo ' + App.data(r.voo).slice(0, 5) };
       });
-      // Legenda (liga/desliga cada dia de voo)
-      var com = lista.filter(function (dia) { return b.registros.some(function (r) { return r.voo === dia; }); });
-      if (com.length > 1) {
-        var leg = criar('div', 'legenda');
-        leg.setAttribute('role', 'group');
-        leg.setAttribute('aria-label', 'Mostrar ou ocultar dias de voo');
-        com.forEach(function (dia) {
-          var i = lista.indexOf(dia);
-          var bt = criar('button', '');
-          bt.type = 'button';
-          bt.setAttribute('aria-pressed', ocultas[dia] ? 'false' : 'true');
-          var sw = criar('i', '');
-          sw.style.background = 'var(--s' + (i + 1) + ')';
-          bt.appendChild(sw);
-          bt.appendChild(document.createTextNode('Voo ' + App.data(dia).slice(0, 5)));
-          bt.addEventListener('click', function () { ocultas[dia] = !ocultas[dia]; desenhar(); });
-          leg.appendChild(bt);
-        });
-        caixaTudo.appendChild(leg);
-      }
-    }
+      b._serie = { id: b.id, nome: nome, cor: 'var(--s' + ((indice % 8) + 1) + ')', pts: pts };
+    });
 
-    var area = criar('div', 'grafico');
-    if (series.length) {
-      Grafico.linhas(area, {
-        series: series,
-        datas: datasOrd,
-        aria: 'Evolução do preço do voo de ' + b.origem + ' para ' + b.destino + ' por data de consulta. O histórico abaixo traz os mesmos valores.',
-        margemDireita: 70,
+    // Legenda (liga/desliga cada trecho)
+    var leg = $('legendaVoos');
+    leg.textContent = '';
+    visiveis.forEach(function (b) {
+      var bt = criar('button', '');
+      bt.type = 'button';
+      bt.setAttribute('aria-pressed', ocultosTrecho[b.id] ? 'false' : 'true');
+      var sw = criar('i', '');
+      sw.style.background = b._serie.cor;
+      bt.appendChild(sw);
+      bt.appendChild(document.createTextNode(b._serie.nome));
+      bt.addEventListener('click', function () { ocultosTrecho[b.id] = !ocultosTrecho[b.id]; desenharGraficoGeral(); });
+      leg.appendChild(bt);
+    });
+
+    var caixa = $('graficoVoos');
+    var ativas = visiveis.filter(function (b) { return !ocultosTrecho[b.id]; }).map(function (b) { return b._serie; });
+    if (!ativas.length) {
+      caixa.textContent = '';
+      caixa.appendChild(criar('p', 'muted', 'Todos os trechos estão ocultos. Clique em um para mostrar.'));
+    } else {
+      Grafico.linhas(caixa, {
+        series: ativas,
+        datas: Object.keys(datas).sort(),
+        tituloX: 'Dia da consulta',
+        aria: 'Evolução do menor preço por trecho, por dia de consulta. O histórico de cada busca traz os mesmos valores.',
+        margemDireita: 110,
         tituloDica: function (iso) { return 'Consulta de ' + App.data(iso); }
       });
-    } else {
-      area.appendChild(criar('p', 'muted', 'Todos os dias estão ocultos. Clique em um para mostrar.'));
     }
-    caixaTudo.appendChild(area);
-    if (b.registros.length < 2) caixaTudo.appendChild(criar('p', 'hint', 'Registre o preço em outro dia para a linha aparecer.'));
-    return caixaTudo;
+    var aviso = $('avisoVoos');
+    var extra = comPreco.length - visiveis.length;
+    aviso.textContent = extra > 0 ? 'O gráfico mostra as 8 primeiras buscas com preço. Há mais ' + extra + ' não exibida(s).' : '';
+    aviso.classList.toggle('hidden', extra <= 0);
   }
 
   function cartao(b) {
@@ -163,9 +156,6 @@
     atalhos.appendChild(cp);
     cart.appendChild(atalhos);
     cart.appendChild(aviso);
-
-    // Gráfico: evolução do preço ao longo das datas em que você consultou
-    if (b.registros.length) cart.appendChild(blocoGrafico(b, lista));
 
     // Registrar preço
     var f = criar('form', '');
@@ -272,6 +262,7 @@
     caixa.textContent = '';
     $('vazio').classList.toggle('hidden', buscas.length > 0);
     buscas.forEach(function (b) { caixa.appendChild(cartao(b)); });
+    desenharGraficoGeral();
   }
 
   $('form').addEventListener('submit', function (ev) {

@@ -34,7 +34,7 @@
     if (!series.length || !datas.length) return;
 
     var R = o.margemDireita || 120;
-    var VW = 500 + R, VH = 250, L = 56, T = 12, B = 30;
+    var VW = 500 + R, L = 56, T = 12, B = o.tituloX ? 46 : 30, VH = 250 + (o.tituloX ? 16 : 0);
     var W = VW - L - R, H = VH - T - B;
     var tmin = tempo(datas[0]), tmax = tempo(datas[datas.length - 1]);
     var vmin = Infinity, vmax = -Infinity;
@@ -73,6 +73,12 @@
       tx.textContent = rotuloData(d, comAno);
       svg.appendChild(tx);
     });
+
+    if (o.tituloX) {
+      var tt = sv('text', { x: L + W / 2, y: VH - 6, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 600, fill: 'var(--muted)' });
+      tt.textContent = o.tituloX;
+      svg.appendChild(tt);
+    }
 
     // Linhas e pontos
     series.forEach(function (s) {
@@ -127,7 +133,7 @@
         var p = s.pts.filter(function (q) { return q.data === melhor; })[0];
         if (!p) return;
         var linha = criar('div', '');
-        var nome = criar('span', '', s.nome);
+        var nome = criar('span', '', s.nome + (p.nota ? ' (' + p.nota + ')' : ''));
         var sw = criar('i', '');
         sw.style.cssText = 'display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;background:' + s.cor;
         nome.insertBefore(sw, nome.firstChild);

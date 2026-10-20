@@ -29,6 +29,14 @@
       <span class="hint hidden" id="erro" role="alert"></span>
     </form>
 
+    <section class="card hidden" id="cardGrafico" aria-label="Evolução dos preços por trecho">
+      <h2>Evolução dos preços por trecho</h2>
+      <span class="muted">Eixo horizontal: dia da consulta. Cada linha mostra o menor preço do trecho naquele dia.</span>
+      <div class="legenda" id="legendaVoos" role="group" aria-label="Mostrar ou ocultar trechos"></div>
+      <div class="grafico" id="graficoVoos"></div>
+      <p class="hint hidden" id="avisoVoos"></p>
+    </section>
+
     <div id="buscas" style="display:flex;flex-direction:column;gap:20px"></div>
     <p class="muted hidden" id="vazio" style="margin:0">Nenhuma busca salva ainda.</p>
   </main>
