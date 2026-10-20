@@ -151,3 +151,7 @@ input.mini { min-height: 34px; padding: 0 8px; font-family: inherit; font-size: 
 .btn.rota { background: transparent; color: var(--accent-text); border: 1.5px solid var(--accent); gap: 8px; }
 .btn.rota:hover { background: var(--soft); }
 .btn.rota svg { flex: none; }
+
+/* Janela "Refazer busca" (Voos) */
+#dlgBusca { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+dialog .card { border: 0; padding: 0; background: transparent; }

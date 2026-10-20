@@ -45,10 +45,13 @@
   function nomeTrecho(b) { return b.origem + ' - ' + b.destino; }
 
   function desenharGraficoGeral() {
-    var card = $('cardGrafico');
     var comPreco = buscas.filter(function (b) { return b.registros.length; });
-    card.classList.toggle('hidden', !comPreco.length);
-    if (!comPreco.length) return;
+    $('semGrafico').classList.toggle('hidden', comPreco.length > 0);
+    if (!comPreco.length) {
+      ['legendaVoos', 'graficoVoos', 'avisoVoos'].forEach(function (id) { $(id).textContent = ''; });
+      $('avisoVoos').classList.add('hidden');
+      return;
+    }
 
     // Colorir pela posição da busca (cor fixa por busca); a paleta tem 8 cores.
     var visiveis = comPreco.slice(0, 8);
@@ -244,26 +247,90 @@
     });
     cart.appendChild(hist);
 
-    var rem = criar('button', 'btn link', 'Remover busca');
-    rem.type = 'button';
-    rem.style.marginTop = '8px';
-    rem.addEventListener('click', function () {
-      if (!confirm('Remover a busca ' + b.origem + ' → ' + b.destino + ' e todo o histórico dela?')) return;
-      buscas = buscas.filter(function (x) { return x.id !== b.id; });
-      salvar(); desenhar();
-    });
-    cart.appendChild(rem);
     return cart;
   }
 
-  function desenhar() {
-    var caixa = $('buscas');
-    // Preserva o que o usuário está digitando ao redesenhar.
+  // ----- Últimas buscas -----
+  function resumoPreco(b) {
+    if (!b.registros.length) return 'Sem preço registrado';
+    var ultimo = {};
+    var maisRecente = '';
+    b.registros.forEach(function (r) {
+      ultimo[r.em + '|' + r.voo] = r;
+      if (r.em > maisRecente) maisRecente = r.em;
+    });
+    var menor = null;
+    Object.keys(ultimo).forEach(function (k) {
+      var r = ultimo[k];
+      if (r.em === maisRecente && (!menor || r.preco < menor.preco)) menor = r;
+    });
+    return 'Menor preço em ' + App.data(maisRecente) + ': ' + App.brl(menor.preco) + ' (voo ' + App.data(menor.voo).slice(0, 5) + ')';
+  }
+
+  function desenharUltimas() {
+    var caixa = $('ultimas');
     caixa.textContent = '';
     $('vazio').classList.toggle('hidden', buscas.length > 0);
-    buscas.forEach(function (b) { caixa.appendChild(cartao(b)); });
-    desenharGraficoGeral();
+    buscas.slice().reverse().forEach(function (b) {
+      var item = criar('div', 'viagem-item');
+      var info = criar('div', 'viagem-info');
+      info.appendChild(criar('strong', '', nomeTrecho(b)));
+      info.appendChild(criar('span', 'muted', 'Só ida · ' + App.data(b.de) + (b.de !== b.ate ? ' a ' + App.data(b.ate) : '') + ' · 1 adulto'));
+      info.appendChild(criar('span', 'muted', resumoPreco(b)));
+      var acoes = criar('div', 'viagem-acoes');
+      var refazer = criar('button', 'btn sec', 'Refazer busca');
+      refazer.type = 'button';
+      refazer.setAttribute('aria-label', 'Refazer a busca ' + nomeTrecho(b) + ' nas mesmas condições');
+      refazer.addEventListener('click', function () { abrirBusca(b.id); });
+      var rem = criar('button', 'btn link', 'Remover');
+      rem.type = 'button';
+      rem.setAttribute('aria-label', 'Remover a busca ' + nomeTrecho(b));
+      rem.addEventListener('click', function () {
+        if (!confirm('Remover a busca ' + nomeTrecho(b) + ' e todo o histórico de preços dela?')) return;
+        buscas = buscas.filter(function (x) { return x.id !== b.id; });
+        salvar(); desenhar();
+      });
+      acoes.appendChild(refazer);
+      acoes.appendChild(rem);
+      item.appendChild(info);
+      item.appendChild(acoes);
+      caixa.appendChild(item);
+    });
   }
+
+  // ----- Janela "Refazer busca": mesmas datas, atalhos, registro de preço e histórico -----
+  var dlgBusca = $('dlgBusca');
+  var abertaBusca = null;
+  function renderBusca() {
+    var b = buscas.filter(function (x) { return x.id === abertaBusca; })[0];
+    if (!b) { if (dlgBusca.open) dlgBusca.close(); return; }
+    $('buscaTitulo').textContent = 'Refazer busca: ' + nomeTrecho(b);
+    var c = $('conteudoBusca');
+    c.textContent = '';
+    c.appendChild(cartao(b));
+  }
+  function abrirBusca(id) {
+    abertaBusca = id;
+    renderBusca();
+    if (!dlgBusca.open) dlgBusca.showModal();
+  }
+  dlgBusca.addEventListener('close', function () { abertaBusca = null; });
+  $('buscaFechar').addEventListener('click', function () { dlgBusca.close(); });
+
+  function desenhar() {
+    desenharUltimas();
+    desenharGraficoGeral();
+    if (abertaBusca) renderBusca();
+  }
+
+  // ----- Novo trecho -----
+  var dlgNovo = $('dlgNovo');
+  $('novoTrecho').addEventListener('click', function () {
+    $('erro').classList.add('hidden');
+    dlgNovo.showModal();
+    $('origem').focus();
+  });
+  $('novoCancelar').addEventListener('click', function () { dlgNovo.close(); });
 
   $('form').addEventListener('submit', function (ev) {
     ev.preventDefault();
@@ -274,10 +341,13 @@
     if (!/^[A-Z]{3}$/.test(o) || !/^[A-Z]{3}$/.test(d)) { erro.textContent = 'Use códigos de aeroporto com 3 letras, como GRU e LIM.'; erro.classList.remove('hidden'); return; }
     if (ate < de) { erro.textContent = 'A data final não pode ser antes da inicial.'; erro.classList.remove('hidden'); return; }
     if (dias(de, ate).length > 14) { erro.textContent = 'Use no máximo 14 dias por busca.'; erro.classList.remove('hidden'); return; }
-    buscas.push({ id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), origem: o, destino: d, de: de, ate: ate, registros: [] });
+    var nova = { id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), origem: o, destino: d, de: de, ate: ate, registros: [] };
+    buscas.push(nova);
     salvar();
     ['origem', 'destino', 'de', 'ate'].forEach(function (i) { $(i).value = ''; });
+    dlgNovo.close();
     desenhar();
+    abrirBusca(nova.id);
   });
 
   desenhar();
