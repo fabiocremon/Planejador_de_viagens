@@ -4,7 +4,7 @@
   var PREFIXO = 'viagens:';
 
   var App = {
-    programas: ['Smiles (GOL)', 'LATAM Pass', 'Azul Fidelidade', 'Livelo / Esfera'],
+    programas: ['Smiles (GOL)', 'LATAM Pass', 'Azul Fidelidade', 'TAP', 'Iberia', 'Livelo', 'Esfera'],
     ler: function (chave, padrao) {
       try {
         var v = localStorage.getItem(PREFIXO + chave);

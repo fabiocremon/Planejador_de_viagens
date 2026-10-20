@@ -14,8 +14,21 @@
   <main class="main">
     <div>
       <h1>Para onde vamos?</h1>
-      <p class="sub">Resumo da sua viagem e ferramentas de planejamento.</p>
+      <p class="sub">Suas viagens, ferramentas de planejamento e o valor do milheiro.</p>
     </div>
+
+    <section class="card" aria-label="Viagens salvas">
+      <div class="row first" style="padding-top:0">
+        <h2>Viagens salvas</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" type="button" id="salvarViagem">Salvar viagem atual</button>
+          <button class="btn sec" type="button" id="novaViagem">Nova viagem</button>
+        </div>
+      </div>
+      <span class="hint" id="salvaMsg" role="status">Salve a viagem atual (dados e roteiro) para abrir depois. Se editar o roteiro, volte aqui e salve de novo para atualizar.</span>
+      <div id="viagens" style="margin-top:8px"></div>
+      <p class="muted hidden" id="semViagens" style="margin:8px 0 0">Nenhuma viagem salva ainda.</p>
+    </section>
 
     <section class="card" aria-label="Próxima viagem" style="display:flex;flex-direction:column;gap:16px">
       <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
@@ -40,11 +53,35 @@
       <div class="tools">
         <a class="card tool" href="roteiro.html"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span><strong>Roteiro dia a dia</strong><span class="muted">Atrações, horários e custos por dia.</span></a>
         <a class="card tool" href="milhas.html"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12h6M12 9v6"/></svg></span><strong>Milhas x dinheiro</strong><span class="muted">Os dois cenários lado a lado.</span></a>
+        <a class="card tool" href="voos.html"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5a2.1 2.1 0 0 0-3-3L13 8 4.8 6.2 3.5 7.5l6.7 3.7-3 3-2.7-.5L3 15l4 2 2 4 1.3-1.5-.5-2.7 3-3 3.7 6.7z"/></svg></span><strong>Voos</strong><span class="muted">Buscas salvas e histórico de preços.</span></a>
       </div>
     </section>
 
-    <section class="card" aria-label="Minhas milhas">
-      <div class="row first"><h2>Minhas milhas e pontos</h2><span class="muted">Só você vê: fica salvo neste navegador</span></div>
+    <section class="card" aria-label="Valor do milheiro na operadora">
+      <div class="row first" style="padding-top:0"><h2>Valor do milheiro na operadora</h2><span class="muted">R$ por 1.000 milhas, conforme consultado em cada data</span></div>
+
+      <form id="formMilheiro" style="display:flex;flex-direction:column;gap:14px;margin-top:8px">
+        <div class="field" style="max-width:240px"><label for="mkData">Data da consulta</label><input id="mkData" type="date" required></div>
+        <div class="form-grid" id="mkCampos"></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <button class="btn" type="submit">Salvar valores</button>
+          <span class="hint" id="mkMsg" role="status">Preencha só as operadoras que consultou. Se a data já existir, os valores informados atualizam essa data.</span>
+        </div>
+      </form>
+
+      <h2 style="margin-top:28px;font-size:16px">Evolução do valor do milheiro</h2>
+      <div class="legenda" id="legenda" role="group" aria-label="Mostrar ou ocultar operadoras"></div>
+      <div class="grafico" id="grafico"></div>
+      <p class="muted hidden" id="mkVazio" style="margin:8px 0 0">Registre valores em pelo menos uma data para ver o gráfico.</p>
+
+      <details style="margin-top:16px" id="mkTabelaBox">
+        <summary>Tabela de valores</summary>
+        <div class="tabela-rolagem" id="mkTabela"></div>
+      </details>
+    </section>
+
+    <section class="card" aria-label="Meus saldos">
+      <div class="row first"><h2>Meus saldos de milhas e pontos</h2><span class="muted">Só você vê: fica salvo neste navegador</span></div>
       <div id="saldos"></div>
     </section>
   </main>
