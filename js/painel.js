@@ -152,47 +152,62 @@
   var ocultas = {};                         // operadora -> true quando escondida no gráfico
   function gravarMilheiros() { App.gravar('milheiros', registros); }
 
-  $('mkData').value = hoje();
+  var dlgCot = $('dlgCotacao');
   var inputsMk = {};
   OPS.forEach(function (op, i) {
-    var g = criar('div', 'field mini-campo');
-    var l = criar('label', '', op);
+    var g = criar('div', 'field');
+    var l = criar('label', '', op + ' (R$)');
     var inp = criar('input', '');
     inp.id = 'mk-' + i;
     inp.inputMode = 'decimal';
-    inp.placeholder = 'R$';
-    inp.className = 'mini';
+    inp.placeholder = 'ex.: 16,50';
     inp.autocomplete = 'off';
     l.htmlFor = inp.id;
     g.appendChild(l);
     g.appendChild(inp);
-    $('mkCampos').appendChild(g);
+    $('cotCampos').appendChild(g);
     inputsMk[op] = inp;
   });
 
-  $('formMilheiro').addEventListener('submit', function (ev) {
+  // Ao escolher a data, traz a cotação já registrada nela (se houver).
+  function preencherCotacao() {
+    var reg = registros.filter(function (r) { return r.data === $('cotData').value; })[0];
+    OPS.forEach(function (op) {
+      var v = reg && reg.valores[op] > 0 ? reg.valores[op] : '';
+      inputsMk[op].value = v === '' ? '' : String(v).replace('.', ',');
+    });
+  }
+  $('cotData').addEventListener('change', preencherCotacao);
+
+  $('novaCotacao').addEventListener('click', function () {
+    $('cotData').value = hoje();
+    preencherCotacao();
+    $('cotErro').classList.add('hidden');
+    dlgCot.showModal();
+    inputsMk[OPS[0]].focus();
+  });
+  $('cotCancelar').addEventListener('click', function () { dlgCot.close(); });
+
+  $('formCotacao').addEventListener('submit', function (ev) {
     ev.preventDefault();
-    var data = $('mkData').value;
-    var msg = $('mkMsg');
-    if (!data) { msg.textContent = 'Informe a data da consulta.'; return; }
-    var novos = {};
+    var erro = $('cotErro');
+    var data = $('cotData').value;
+    if (!data) { erro.textContent = 'Informe a data.'; erro.classList.remove('hidden'); return; }
+    var valores = {};
     var qtd = 0;
     OPS.forEach(function (op) {
       var v = App.num(inputsMk[op].value);
-      if (inputsMk[op].value.trim() && v > 0) { novos[op] = v; qtd++; }
+      if (inputsMk[op].value.trim() && v > 0) { valores[op] = v; qtd++; }
     });
-    if (!qtd) { msg.textContent = 'Informe o valor de pelo menos uma operadora.'; return; }
+    if (!qtd) { erro.textContent = 'Informe o valor de pelo menos uma operadora.'; erro.classList.remove('hidden'); return; }
     var reg = registros.filter(function (r) { return r.data === data; })[0];
-    if (reg) {
-      Object.keys(novos).forEach(function (op) { reg.valores[op] = novos[op]; });
-      msg.textContent = 'Valores de ' + App.data(data) + ' atualizados.';
-    } else {
-      registros.push({ id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), data: data, valores: novos });
-      msg.textContent = 'Valores de ' + App.data(data) + ' salvos.';
-    }
+    var atualizou = !!reg;
+    if (reg) reg.valores = valores;
+    else registros.push({ id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), data: data, valores: valores });
     registros.sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; });
     gravarMilheiros();
-    OPS.forEach(function (op) { inputsMk[op].value = ''; });
+    dlgCot.close();
+    $('mkMsg').textContent = 'Cotação de ' + App.data(data) + (atualizou ? ' atualizada.' : ' salva.');
     desenharMilheiro();
   });
 
@@ -415,35 +430,96 @@
   desenharMilheiro();
 
   // =====================================================================
-  // Saldos de milhas e pontos (compacto)
+  // Saldos: só os programas que o usuário incluiu
   // =====================================================================
   var saldos = App.ler('saldos', {});
-  var alvo = $('saldos');
-  OPS.forEach(function (nome) {
-    var s = saldos[nome] || {};
-    var linha = criar('div', 'saldo-linha');
-    linha.appendChild(criar('strong', '', nome));
+  var marcados = {};          // programas marcados no checklist
+  var editandoPrograma = null;
+  var dlgSal = $('dlgSaldo');
 
-    var iSaldo = criar('input', 'mini');
-    iSaldo.inputMode = 'numeric';
-    iSaldo.placeholder = 'saldo';
-    iSaldo.value = s.saldo || '';
-    iSaldo.setAttribute('aria-label', 'Saldo em ' + nome);
+  function gravarSaldos() { App.gravar('saldos', saldos); }
+  // Dados antigos vazios (sem saldo nem validade) não contam como programa incluído.
+  function incluido(nome) {
+    var s = saldos[nome];
+    return !!(s && (s.ativo || s.saldo || s.validade));
+  }
 
-    var iVal = criar('input', 'mini');
-    iVal.type = 'date';
-    iVal.value = s.validade || '';
-    iVal.setAttribute('aria-label', 'Validade em ' + nome);
+  function atualizarSelecao() {
+    var nomes = OPS.filter(function (n) { return incluido(n) && marcados[n]; });
+    $('editarSaldo').disabled = nomes.length !== 1;
+    $('excluirSaldo').disabled = nomes.length === 0;
+    $('selInfo').textContent = nomes.length === 0
+      ? 'Marque um programa para editar ou excluir.'
+      : nomes.length === 1 ? '1 programa marcado.' : nomes.length + ' programas marcados. Editar exige só um.';
+  }
 
-    function salvarSaldo() {
-      saldos[nome] = { saldo: iSaldo.value, validade: iVal.value };
-      App.gravar('saldos', saldos);
-    }
-    iSaldo.addEventListener('input', salvarSaldo);
-    iVal.addEventListener('input', salvarSaldo);
+  function desenharSaldos() {
+    var alvo = $('saldos');
+    alvo.textContent = '';
+    var lista = OPS.filter(incluido);
+    $('semSaldos').classList.toggle('hidden', lista.length > 0);
+    lista.forEach(function (nome, i) {
+      var s = saldos[nome];
+      var linha = criar('label', 'saldo-item');
+      var cx = criar('input', '');
+      cx.type = 'checkbox';
+      cx.checked = !!marcados[nome];
+      cx.setAttribute('aria-label', 'Marcar ' + nome);
+      cx.addEventListener('change', function () { marcados[nome] = cx.checked; atualizarSelecao(); });
+      var info = criar('div', 'saldo-info');
+      info.appendChild(criar('strong', '', nome));
+      var det = [];
+      det.push(s.saldo ? App.inteiro(App.num(s.saldo)) + ' pts/milhas' : 'sem saldo informado');
+      if (s.validade) det.push('vence em ' + App.data(s.validade));
+      info.appendChild(criar('span', 'muted', det.join(' · ')));
+      if (s.validade && s.validade < hoje()) info.appendChild(criar('span', 'chip', 'Vencido'));
+      linha.appendChild(cx);
+      linha.appendChild(info);
+      alvo.appendChild(linha);
+    });
+    atualizarSelecao();
+  }
 
-    linha.appendChild(iSaldo);
-    linha.appendChild(iVal);
-    alvo.appendChild(linha);
+  function abrirSaldo(nome) {
+    editandoPrograma = nome || null;
+    var sel = $('salPrograma');
+    sel.textContent = '';
+    var opcoes = nome ? [nome] : OPS.filter(function (n) { return !incluido(n); });
+    if (!opcoes.length) { $('semSaldos').textContent = 'Todos os programas já foram incluídos.'; $('semSaldos').classList.remove('hidden'); return; }
+    opcoes.forEach(function (n) { sel.appendChild(criar('option', '', n)); });
+    sel.disabled = !!nome;
+    var s = nome ? saldos[nome] : {};
+    $('salSaldo').value = s.saldo || '';
+    $('salValidade').value = s.validade || '';
+    $('salTitulo').textContent = nome ? 'Editar programa' : 'Incluir programa';
+    $('salErro').classList.add('hidden');
+    dlgSal.showModal();
+    (nome ? $('salSaldo') : sel).focus();
+  }
+
+  $('novoPrograma').addEventListener('click', function () { abrirSaldo(null); });
+  $('salCancelar').addEventListener('click', function () { dlgSal.close(); });
+  $('editarSaldo').addEventListener('click', function () {
+    var nomes = OPS.filter(function (n) { return incluido(n) && marcados[n]; });
+    if (nomes.length === 1) abrirSaldo(nomes[0]);
   });
+  $('excluirSaldo').addEventListener('click', function () {
+    var nomes = OPS.filter(function (n) { return incluido(n) && marcados[n]; });
+    if (!nomes.length) return;
+    if (!confirm('Excluir ' + nomes.join(', ') + ' dos seus saldos?')) return;
+    nomes.forEach(function (n) { delete saldos[n]; delete marcados[n]; });
+    gravarSaldos();
+    desenharSaldos();
+  });
+
+  $('formSaldo').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var nome = $('salPrograma').value;
+    if (!nome) return;
+    saldos[nome] = { ativo: true, saldo: $('salSaldo').value.trim(), validade: $('salValidade').value };
+    gravarSaldos();
+    dlgSal.close();
+    desenharSaldos();
+  });
+  desenharSaldos();
 })();

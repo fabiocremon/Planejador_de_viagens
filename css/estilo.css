@@ -136,3 +136,10 @@ input.mini { min-height: 34px; padding: 0 8px; font-family: inherit; font-size: 
 .legenda { margin: 8px 0; gap: 6px; }
 .legenda button { min-height: 30px; padding: 0 10px; font-size: 12px; }
 .grafico svg { max-height: 300px; }
+
+/* Saldos: checklist de programas */
+.saldo-item { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); cursor: pointer; }
+.saldo-item:first-child { border-top: 0; }
+.saldo-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+.saldo-info { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; min-width: 0; }
+.saldo-info > .muted { font-size: 13px; }

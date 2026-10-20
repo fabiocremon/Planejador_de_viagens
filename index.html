@@ -38,21 +38,14 @@
 
     <div class="cols">
     <section class="card" aria-label="Valor do milheiro na operadora" style="flex:2 1 440px;min-width:0">
-      <div class="row first" style="padding-top:0"><h2>Valor do milheiro na operadora</h2><span class="muted">R$ por 1.000 milhas, conforme consultado em cada data</span></div>
-
-      <form id="formMilheiro" style="display:flex;flex-direction:column;gap:14px;margin-top:8px">
-        <div class="field mini-campo" style="max-width:170px"><label for="mkData">Data da consulta</label><input id="mkData" class="mini" type="date" required></div>
-        <div class="mini-grid" id="mkCampos"></div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-          <button class="btn" type="submit">Salvar valores</button>
-          <span class="hint" id="mkMsg" role="status">Preencha só as operadoras que consultou. Se a data já existir, os valores informados atualizam essa data.</span>
-        </div>
-      </form>
-
-      <h2 style="margin-top:28px;font-size:16px">Evolução do valor do milheiro</h2>
+      <div class="row first" style="padding-top:0">
+        <div><h2>Valor do milheiro na operadora</h2><span class="muted">R$ por 1.000 milhas, conforme a cotação de cada dia</span></div>
+        <button class="btn" type="button" id="novaCotacao">+ Incluir cotação do dia</button>
+      </div>
+      <span class="hint" id="mkMsg" role="status"></span>
       <div class="legenda" id="legenda" role="group" aria-label="Mostrar ou ocultar operadoras"></div>
       <div class="grafico" id="grafico"></div>
-      <p class="muted hidden" id="mkVazio" style="margin:8px 0 0">Registre valores em pelo menos uma data para ver o gráfico.</p>
+      <p class="muted hidden" id="mkVazio" style="margin:8px 0 0">Inclua a cotação de um dia para ver o gráfico.</p>
 
       <details style="margin-top:16px" id="mkTabelaBox">
         <summary>Tabela de valores</summary>
@@ -60,11 +53,19 @@
       </details>
     </section>
 
-    <section class="card" aria-label="Meus saldos" style="flex:1 1 370px;min-width:0;padding:18px">
-      <h2>Meus saldos</h2>
-      <span class="hint">Milhas e pontos. Fica salvo só neste navegador.</span>
-      <div class="saldo-linha cab" aria-hidden="true"><span></span><span>Saldo</span><span>Validade</span></div>
-      <div id="saldos"></div>
+    <section class="card" aria-label="Meus saldos" style="flex:1 1 340px;min-width:0;padding:18px">
+      <div class="row first" style="padding-top:0">
+        <h2>Meus saldos</h2>
+        <button class="btn sec" type="button" id="novoPrograma">+ Incluir programa</button>
+      </div>
+      <span class="hint">Só os programas que você incluir. Fica salvo neste navegador.</span>
+      <div id="saldos" style="margin-top:6px"></div>
+      <p class="muted" id="semSaldos" style="margin:10px 0 0">Nenhum programa incluído ainda.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <button class="btn sec" type="button" id="editarSaldo" disabled>Editar</button>
+        <button class="btn link" type="button" id="excluirSaldo" disabled>Excluir</button>
+        <span class="hint" id="selInfo">Marque um programa para editar ou excluir.</span>
+      </div>
     </section>
     </div>
   </main>
@@ -83,6 +84,34 @@
     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
       <button class="btn link" type="button" id="dlgCancelar">Cancelar</button>
       <button class="btn" type="submit" id="dlgEnviar">Criar e abrir roteiro</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="dlgCotacao" aria-labelledby="cotTitulo">
+  <form id="formCotacao" style="display:flex;flex-direction:column;gap:16px">
+    <h2 id="cotTitulo">Cotação do dia</h2>
+    <div class="field" style="max-width:220px"><label for="cotData">Data da cotação</label><input id="cotData" type="date" required></div>
+    <span class="hint">Valor do milheiro (R$ por 1.000 milhas) em cada operadora. Preencha só as que consultou. Se a data já tiver cotação, os campos vêm preenchidos para você alterar.</span>
+    <div class="form-grid" id="cotCampos" style="grid-template-columns:1fr 1fr"></div>
+    <span class="hint hidden" id="cotErro" role="alert"></span>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn link" type="button" id="cotCancelar">Cancelar</button>
+      <button class="btn" type="submit">Salvar cotação</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="dlgSaldo" aria-labelledby="salTitulo">
+  <form id="formSaldo" style="display:flex;flex-direction:column;gap:16px">
+    <h2 id="salTitulo">Incluir programa</h2>
+    <div class="field"><label for="salPrograma">Programa</label><select id="salPrograma"></select></div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr">
+      <div class="field"><label for="salSaldo">Saldo (milhas ou pontos)</label><input id="salSaldo" inputmode="numeric" placeholder="ex.: 50.000" autocomplete="off"></div>
+      <div class="field"><label for="salValidade">Validade</label><input id="salValidade" type="date"></div>
+    </div>
+    <span class="hint hidden" id="salErro" role="alert"></span>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn link" type="button" id="salCancelar">Cancelar</button>
+      <button class="btn" type="submit">Salvar</button>
     </div>
   </form>
 </dialog>
