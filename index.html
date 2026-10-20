@@ -36,12 +36,13 @@
       </div>
     </section>
 
-    <section class="card" aria-label="Valor do milheiro na operadora">
+    <div class="cols">
+    <section class="card" aria-label="Valor do milheiro na operadora" style="flex:2 1 440px;min-width:0">
       <div class="row first" style="padding-top:0"><h2>Valor do milheiro na operadora</h2><span class="muted">R$ por 1.000 milhas, conforme consultado em cada data</span></div>
 
       <form id="formMilheiro" style="display:flex;flex-direction:column;gap:14px;margin-top:8px">
-        <div class="field" style="max-width:240px"><label for="mkData">Data da consulta</label><input id="mkData" type="date" required></div>
-        <div class="form-grid" id="mkCampos"></div>
+        <div class="field mini-campo" style="max-width:170px"><label for="mkData">Data da consulta</label><input id="mkData" class="mini" type="date" required></div>
+        <div class="mini-grid" id="mkCampos"></div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
           <button class="btn" type="submit">Salvar valores</button>
           <span class="hint" id="mkMsg" role="status">Preencha só as operadoras que consultou. Se a data já existir, os valores informados atualizam essa data.</span>
@@ -59,10 +60,13 @@
       </details>
     </section>
 
-    <section class="card" aria-label="Meus saldos">
-      <div class="row first"><h2>Meus saldos de milhas e pontos</h2><span class="muted">Só você vê: fica salvo neste navegador</span></div>
+    <section class="card" aria-label="Meus saldos" style="flex:1 1 370px;min-width:0;padding:18px">
+      <h2>Meus saldos</h2>
+      <span class="hint">Milhas e pontos. Fica salvo só neste navegador.</span>
+      <div class="saldo-linha cab" aria-hidden="true"><span></span><span>Saldo</span><span>Validade</span></div>
       <div id="saldos"></div>
     </section>
+    </div>
   </main>
 </div>
 <dialog id="dlgViagem" aria-labelledby="dlgTitulo">

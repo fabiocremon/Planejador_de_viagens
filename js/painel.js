@@ -155,12 +155,13 @@
   $('mkData').value = hoje();
   var inputsMk = {};
   OPS.forEach(function (op, i) {
-    var g = criar('div', 'field');
-    var l = criar('label', '', op + ' (R$)');
+    var g = criar('div', 'field mini-campo');
+    var l = criar('label', '', op);
     var inp = criar('input', '');
     inp.id = 'mk-' + i;
     inp.inputMode = 'decimal';
-    inp.placeholder = 'ex.: 16,50';
+    inp.placeholder = 'R$';
+    inp.className = 'mini';
     inp.autocomplete = 'off';
     l.htmlFor = inp.id;
     g.appendChild(l);
@@ -256,7 +257,7 @@
       return;
     }
 
-    var VW = 760, VH = 340, L = 56, R = 120, T = 16, B = 40;
+    var VW = 620, VH = 250, L = 56, R = 120, T = 12, B = 30;
     var W = VW - L - R, H = VH - T - B;
     var tmin = Infinity, tmax = -Infinity, vmin = Infinity, vmax = -Infinity;
     registros.forEach(function (r) {
@@ -283,7 +284,7 @@
     for (var v = lo; v <= hi + st / 100; v += st) {
       var y = Y(v);
       svg.appendChild(sv('line', { x1: L, x2: L + W, y1: y, y2: y, stroke: 'var(--border)', 'stroke-width': 1 }));
-      var tx = sv('text', { x: L - 8, y: y + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--muted)' });
+      var tx = sv('text', { x: L - 8, y: y + 4, 'text-anchor': 'end', 'font-size': 13, fill: 'var(--muted)' });
       tx.textContent = 'R$ ' + v.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
       svg.appendChild(tx);
     }
@@ -297,7 +298,7 @@
     datas.forEach(function (d, i) {
       if (i % salto !== 0 && i !== datas.length - 1) return;
       var x = X(Date.parse(d + 'T00:00:00Z'));
-      var tx = sv('text', { x: x, y: VH - B + 20, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--muted)' });
+      var tx = sv('text', { x: x, y: VH - B + 18, 'text-anchor': 'middle', 'font-size': 13, fill: 'var(--muted)' });
       tx.textContent = rotuloData(d, comAno);
       svg.appendChild(tx);
     });
@@ -309,7 +310,7 @@
         svg.appendChild(sv('path', { d: d, fill: 'none', stroke: s.cor, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
       }
       s.pts.forEach(function (p) {
-        svg.appendChild(sv('circle', { cx: X(p.t), cy: Y(p.v), r: 4.5, fill: s.cor, stroke: 'var(--surface)', 'stroke-width': 2 }));
+        svg.appendChild(sv('circle', { cx: X(p.t), cy: Y(p.v), r: 4, fill: s.cor, stroke: 'var(--surface)', 'stroke-width': 2 }));
       });
     });
 
@@ -319,10 +320,10 @@
       return { s: s, x: X(u.t), y: Y(u.v) };
     }).sort(function (a, b) { return a.y - b.y; });
     for (var i = 1; i < rotulos.length; i++) {
-      if (rotulos[i].y - rotulos[i - 1].y < 14) rotulos[i].y = rotulos[i - 1].y + 14;
+      if (rotulos[i].y - rotulos[i - 1].y < 16) rotulos[i].y = rotulos[i - 1].y + 16;
     }
     rotulos.forEach(function (r) {
-      var tx = sv('text', { x: r.x + 12, y: r.y + 4, 'font-size': 11, 'font-weight': 600, fill: 'var(--fg)' });
+      var tx = sv('text', { x: r.x + 10, y: r.y + 4, 'font-size': 13, 'font-weight': 600, fill: 'var(--fg)' });
       tx.textContent = r.s.op;
       svg.appendChild(tx);
     });
@@ -414,40 +415,25 @@
   desenharMilheiro();
 
   // =====================================================================
-  // Saldos de milhas e pontos
+  // Saldos de milhas e pontos (compacto)
   // =====================================================================
   var saldos = App.ler('saldos', {});
   var alvo = $('saldos');
   OPS.forEach(function (nome) {
     var s = saldos[nome] || {};
-    var linha = criar('div', 'row');
-    linha.style.alignItems = 'center';
+    var linha = criar('div', 'saldo-linha');
+    linha.appendChild(criar('strong', '', nome));
 
-    var titulo = criar('strong', '', nome);
-    titulo.style.flex = '1 1 160px';
-
-    var gSaldo = criar('div', 'field');
-    gSaldo.style.flex = '1 1 160px';
-    var lSaldo = criar('label', 'muted', 'Saldo');
-    var iSaldo = criar('input', '');
+    var iSaldo = criar('input', 'mini');
     iSaldo.inputMode = 'numeric';
-    iSaldo.placeholder = 'milhas ou pontos';
+    iSaldo.placeholder = 'saldo';
     iSaldo.value = s.saldo || '';
-    iSaldo.id = 'saldo-' + nome;
-    lSaldo.htmlFor = iSaldo.id;
-    gSaldo.appendChild(lSaldo);
-    gSaldo.appendChild(iSaldo);
+    iSaldo.setAttribute('aria-label', 'Saldo em ' + nome);
 
-    var gVal = criar('div', 'field');
-    gVal.style.flex = '1 1 160px';
-    var lVal = criar('label', 'muted', 'Validade');
-    var iVal = criar('input', '');
+    var iVal = criar('input', 'mini');
     iVal.type = 'date';
     iVal.value = s.validade || '';
-    iVal.id = 'validade-' + nome;
-    lVal.htmlFor = iVal.id;
-    gVal.appendChild(lVal);
-    gVal.appendChild(iVal);
+    iVal.setAttribute('aria-label', 'Validade em ' + nome);
 
     function salvarSaldo() {
       saldos[nome] = { saldo: iSaldo.value, validade: iVal.value };
@@ -456,9 +442,8 @@
     iSaldo.addEventListener('input', salvarSaldo);
     iVal.addEventListener('input', salvarSaldo);
 
-    linha.appendChild(titulo);
-    linha.appendChild(gSaldo);
-    linha.appendChild(gVal);
+    linha.appendChild(iSaldo);
+    linha.appendChild(iVal);
     alvo.appendChild(linha);
   });
 })();
