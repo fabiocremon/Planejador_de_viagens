@@ -53,7 +53,7 @@
       if (repetido[nome] > 1) nome += ' (' + App.data(b.de).slice(0, 5) + (b.de !== b.ate ? '–' + App.data(b.ate).slice(0, 5) : '') + ')';
       // último preço registrado de cada dia de voo em cada dia de consulta
       var ultimo = {};
-      b.registros.forEach(function (r) { ultimo[r.em + '|' + r.voo] = r; });
+      b.registros.forEach(function (r) { ultimo[r.em + '|' + r.voo + '|' + (r.cia || '')] = r; });
       var menorPorEm = {};
       Object.keys(ultimo).forEach(function (k) {
         var r = ultimo[k];
@@ -62,7 +62,7 @@
       });
       var pts = Object.keys(menorPorEm).sort().map(function (em) {
         var r = menorPorEm[em];
-        return { data: em, v: r.preco, nota: 'voo ' + App.data(r.voo).slice(0, 5) };
+        return { data: em, v: r.preco, nota: 'voo ' + App.data(r.voo).slice(0, 5) + (r.cia ? ', ' + r.cia : '') };
       });
       b._serie = { id: b.id, nome: nome, cor: 'var(--s' + ((indice % 8) + 1) + ')', pts: pts };
     });
@@ -103,6 +103,9 @@
     aviso.classList.toggle('hidden', extra <= 0);
   }
 
+  var COMPANHIAS = ['LATAM', 'GOL', 'Azul', 'Avianca', 'Sky Airline', 'TAP', 'Iberia', 'Copa', 'American', 'Air France', 'KLM', 'Outra'];
+  var consultaEm = null, consultaFonte = 'Google Flights'; // valem para todos os preços registrados na janela
+
   function cartao(b) {
     var cart = criar('section', 'card');
     cart.setAttribute('aria-label', b.origem + ' para ' + b.destino);
@@ -135,55 +138,67 @@
     atalhos.appendChild(fc);
     cart.appendChild(atalhos);
 
+    // Dados gerais da consulta (valem para todos os preços digitados abaixo)
+    if (!consultaEm) consultaEm = hoje();
+    var geral = criar('div', '');
+    geral.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:8px';
+    var gEm = criar('div', 'field'); gEm.style.maxWidth = '180px';
+    var lEm = criar('label', '', 'Dia da consulta'); lEm.htmlFor = 'consulta-em';
+    var iEm = criar('input', ''); iEm.id = 'consulta-em'; iEm.type = 'date'; iEm.value = consultaEm;
+    iEm.addEventListener('change', function () { if (iEm.value) consultaEm = iEm.value; });
+    gEm.appendChild(lEm); gEm.appendChild(iEm);
+    var gFo = criar('div', 'field'); gFo.style.cssText = 'flex:1 1 180px;max-width:280px';
+    var lFo = criar('label', '', 'Fonte'); lFo.htmlFor = 'consulta-fonte';
+    var iFo = criar('input', ''); iFo.id = 'consulta-fonte'; iFo.value = consultaFonte; iFo.autocomplete = 'off';
+    iFo.addEventListener('input', function () { consultaFonte = iFo.value; });
+    gFo.appendChild(lFo); gFo.appendChild(iFo);
+    geral.appendChild(gEm); geral.appendChild(gFo);
+    cart.appendChild(geral);
+    var dl = criar('datalist', ''); dl.id = 'lista-cias';
+    COMPANHIAS.forEach(function (n) { var o = criar('option', ''); o.value = n; dl.appendChild(o); });
+    cart.appendChild(dl);
+
     // Histórico por data de voo
     var hist = criar('div', '');
     lista.forEach(function (d) {
       var regs = b.registros.filter(function (r) { return r.voo === d; })
         .sort(function (x, y) { return x.em < y.em ? -1 : x.em > y.em ? 1 : 0; });
-      var linha = criar('div', 'row');
-      linha.appendChild(criar('strong', '', 'Voo em ' + App.data(d)));
-      if (!regs.length) {
-        linha.appendChild(criar('span', 'muted', 'Sem preços registrados'));
-      } else {
-        var ult = regs[regs.length - 1];
-        var menor = regs.reduce(function (m, r) { return r.preco < m.preco ? r : m; }, regs[0]);
-        var txt = 'Último: ' + App.brl(ult.preco) + ' (' + App.data(ult.em) + ')';
-        if (regs.length > 1) {
-          var dif = ult.preco - regs[regs.length - 2].preco;
-          txt += dif === 0 ? ' · igual ao anterior' : (dif > 0 ? ' · subiu ' : ' · caiu ') + App.brl(Math.abs(dif));
-        }
-        txt += ' · menor: ' + App.brl(menor.preco) + ' (' + App.data(menor.em) + ')';
-        linha.appendChild(criar('span', '', txt));
-      }
-      hist.appendChild(linha);
-      // Registrar preço deste dia (fonte já vem como Google Flights, mas pode ser trocada)
       var f = criar('form', 'reg-linha');
-      var iPreco = criar('input', '');
+      f.appendChild(criar('strong', 'reg-dia', 'Voo em ' + App.data(d)));
+      var iCia = criar('input', 'cia');
+      iCia.setAttribute('list', 'lista-cias');
+      iCia.placeholder = 'Companhia';
+      iCia.autocomplete = 'off';
+      iCia.setAttribute('aria-label', 'Companhia aérea do voo em ' + App.data(d));
+      var iPreco = criar('input', 'preco');
       iPreco.inputMode = 'decimal';
       iPreco.placeholder = 'Preço (R$)';
       iPreco.setAttribute('aria-label', 'Preço do voo em ' + App.data(d));
       iPreco.required = true;
-      var iFonte = criar('input', 'fonte');
-      iFonte.value = 'Google Flights';
-      iFonte.setAttribute('aria-label', 'Fonte do preço do voo em ' + App.data(d));
       var reg = criar('button', 'btn sec', 'Registrar');
       reg.type = 'submit';
-      f.appendChild(iPreco); f.appendChild(iFonte); f.appendChild(reg);
+      f.appendChild(iCia); f.appendChild(iPreco); f.appendChild(reg);
       f.addEventListener('submit', function (ev) {
         ev.preventDefault();
         var preco = App.num(iPreco.value);
         if (!(preco > 0)) { iPreco.focus(); return; }
         b.registros.push({
           id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-          voo: d, preco: preco, fonte: iFonte.value.trim(), em: hoje()
+          voo: d, preco: preco, cia: iCia.value.trim(), fonte: (consultaFonte || '').trim(), em: consultaEm || hoje()
         });
         salvar(); desenhar();
       });
       hist.appendChild(f);
+      if (regs.length) {
+        var menor = regs.reduce(function (m, r) { return r.preco < m.preco ? r : m; }, regs[0]);
+        var rs = criar('div', 'muted', 'Menor registrado: ' + App.brl(menor.preco) + (menor.cia ? ' · ' + menor.cia : '') + ' (' + App.data(menor.em) + ')');
+        rs.style.cssText = 'font-size:12px;padding:0 0 4px 2px';
+        hist.appendChild(rs);
+      }
       regs.slice().reverse().forEach(function (r) {
         var l = criar('div', 'row');
-        l.style.cssText = 'padding:6px 0 6px 16px;border-top:0';
-        l.appendChild(criar('span', 'muted', App.data(r.em) + ' · ' + (r.fonte || 'sem fonte')));
+        l.style.cssText = 'padding:3px 0 3px 16px;border-top:0;font-size:13px';
+        l.appendChild(criar('span', 'muted', App.data(r.em) + (r.cia ? ' · ' + r.cia : '') + ' · ' + (r.fonte || 'sem fonte')));
         var dir = criar('span', '', App.brl(r.preco));
         var x = criar('button', 'btn link', 'Remover');
         x.type = 'button';
@@ -211,18 +226,19 @@
     var porEm = {};
     b.registros.forEach(function (r) {
       porEm[r.em] = porEm[r.em] || {};
-      porEm[r.em][r.voo] = r;
+      porEm[r.em][r.voo + '|' + (r.cia || '')] = r;
     });
     var ems = Object.keys(porEm).sort();
     return ems.map(function (em, i) {
-      var linhas = Object.keys(porEm[em]).sort().map(function (voo) {
-        var r = porEm[em][voo];
+      var linhas = Object.keys(porEm[em]).sort().map(function (chave) {
+        var r = porEm[em][chave], voo = r.voo;
         // preço anterior do mesmo dia de voo, em consulta mais antiga
         var anterior = null;
-        for (var j = i - 1; j >= 0 && !anterior; j--) anterior = porEm[ems[j]][voo] || null;
-        return { voo: voo, preco: r.preco, fonte: r.fonte, dif: anterior ? r.preco - anterior.preco : null };
+        for (var j = i - 1; j >= 0 && !anterior; j--) anterior = porEm[ems[j]][chave] || null;
+        return { voo: voo, cia: r.cia || '', preco: r.preco, fonte: r.fonte, dif: anterior ? r.preco - anterior.preco : null };
       });
-      return { em: em, linhas: linhas };
+      var fontes = {}; Object.keys(porEm[em]).forEach(function (k) { if (porEm[em][k].fonte) fontes[porEm[em][k].fonte] = 1; });
+      return { em: em, fonte: Object.keys(fontes).join(', '), linhas: linhas };
     }).reverse(); // mais recente primeiro
   }
 
@@ -231,11 +247,11 @@
     var menor = Math.min.apply(null, c.linhas.map(function (l) { return l.preco; }));
     var tit = criar('div', 'consulta-titulo');
     tit.appendChild(criar('strong', '', 'Consulta de ' + App.data(c.em)));
-    tit.appendChild(criar('span', 'muted', c.linhas.length + (c.linhas.length === 1 ? ' dia consultado' : ' dias consultados')));
+    tit.appendChild(criar('span', 'muted', c.linhas.length + (c.linhas.length === 1 ? ' preço' : ' preços') + (c.fonte ? ' · ' + c.fonte : '')));
     bloco.appendChild(tit);
     c.linhas.forEach(function (l) {
       var linha = criar('div', 'consulta-linha');
-      linha.appendChild(criar('span', '', 'Voo em ' + App.data(l.voo)));
+      linha.appendChild(criar('span', '', 'Voo em ' + App.data(l.voo) + (l.cia ? ' · ' + l.cia : '')));
       var dir = criar('span', '');
       dir.style.cssText = 'display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;justify-content:flex-end';
       if (l.dif) dir.appendChild(criar('span', 'hint', (l.dif < 0 ? 'caiu ' : 'subiu ') + App.brl(Math.abs(l.dif))));
@@ -334,6 +350,7 @@
   });
   $('novoCancelar').addEventListener('click', function () { dlgNovo.close(); });
 
+  var avisou = '';
   $('form').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var erro = $('erro');
@@ -342,7 +359,8 @@
     erro.classList.add('hidden');
     if (!/^[A-Z]{3}$/.test(o) || !/^[A-Z]{3}$/.test(d)) { erro.textContent = 'Use códigos de aeroporto com 3 letras, como GRU e LIM.'; erro.classList.remove('hidden'); return; }
     if (ate < de) { erro.textContent = 'A data final não pode ser antes da inicial.'; erro.classList.remove('hidden'); return; }
-    if (dias(de, ate).length > 14) { erro.textContent = 'Use no máximo 14 dias por busca.'; erro.classList.remove('hidden'); return; }
+    var qtd = dias(de, ate).length;
+    if (qtd > 31 && avisou !== de + '|' + ate) { avisou = de + '|' + ate; erro.textContent = 'Período de ' + qtd + ' dias: serão ' + qtd + ' linhas para preencher. Clique em Salvar de novo para confirmar.'; erro.classList.remove('hidden'); return; }
     var nova = { id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), origem: o, destino: d, de: de, ate: ate, registros: [] };
     buscas.push(nova);
     salvar();
