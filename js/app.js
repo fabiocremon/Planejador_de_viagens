@@ -56,11 +56,13 @@
   var ICONES = {
     painel: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
     roteiro: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>',
-    milhas: '<circle cx="12" cy="12" r="9"/><path d="M9 12h6M12 9v6"/>'
+    milhas: '<circle cx="12" cy="12" r="9"/><path d="M9 12h6M12 9v6"/>',
+    voos: '<path d="M17.8 19.2 16 11l3.5-3.5a2.1 2.1 0 0 0-3-3L13 8 4.8 6.2 3.5 7.5l6.7 3.7-3 3-2.7-.5L3 15l4 2 2 4 1.3-1.5-.5-2.7 3-3 3.7 6.7z"/>'
   };
   var PAGINAS = [
     ['index', 'index.html', 'Painel', 'painel'],
     ['roteiro', 'roteiro.html', 'Roteiro', 'roteiro'],
+    ['voos', 'voos.html', 'Voos', 'voos'],
     ['milhas', 'milhas.html', 'Milhas x dinheiro', 'milhas']
   ];
 

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voos — Planejador de viagens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body data-pagina="voos">
+<div class="app">
+  <aside class="side" id="lateral"></aside>
+  <main class="main">
+    <div>
+      <h1>Voos</h1>
+      <p class="sub">Salve buscas, abra no Google Flights e acompanhe o histórico de preços.</p>
+    </div>
+
+    <form class="card" id="form" aria-label="Nova busca" style="display:flex;flex-direction:column;gap:14px">
+      <h2>Nova busca (só ida, 1 adulto)</h2>
+      <div class="form-grid">
+        <div class="field"><label for="origem">Origem (código)</label><input id="origem" required maxlength="3" placeholder="ex.: GRU" autocomplete="off" style="text-transform:uppercase"></div>
+        <div class="field"><label for="destino">Destino (código)</label><input id="destino" required maxlength="3" placeholder="ex.: LIM" autocomplete="off" style="text-transform:uppercase"></div>
+        <div class="field"><label for="de">Ida a partir de</label><input id="de" type="date" required></div>
+        <div class="field"><label for="ate">Ida até</label><input id="ate" type="date" required></div>
+      </div>
+      <button class="btn" type="submit" style="align-self:flex-start">Salvar busca</button>
+      <span class="hint hidden" id="erro" role="alert"></span>
+    </form>
+
+    <div id="buscas" style="display:flex;flex-direction:column;gap:20px"></div>
+    <p class="muted hidden" id="vazio" style="margin:0">Nenhuma busca salva ainda.</p>
+  </main>
+</div>
+<script src="js/app.js"></script>
+<script src="js/voos.js"></script>
+</body>
+</html>

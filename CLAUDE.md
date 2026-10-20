@@ -54,7 +54,7 @@ Suportar **tema claro e escuro** (alternância manual + respeitar `prefers-color
 - **Pasta principal:** `C:\Users\inss\OneDrive - INSS\Documentos\Claude\Planejador de viagens`
 - **Deploy:** nenhum por enquanto. Tudo roda localmente / fica no OneDrive.
 - **Ferramentas:** HTML/CSS/JS puro, sem frameworks. Abrir `index.html` no navegador.
-- **Arquivos:** `index.html` (painel), `roteiro.html`, `milhas.html`, `css/estilo.css` (tema e componentes), `js/app.js` (tema, menu, armazenamento), `js/painel.js`, `js/roteiro.js`, `js/milhas.js`.
+- **Arquivos:** `index.html` (painel), `roteiro.html`, `milhas.html`, `voos.html` (buscas salvas e histórico de preços digitados), `css/estilo.css` (tema e componentes), `js/app.js` (tema, menu, armazenamento), `js/painel.js`, `js/roteiro.js`, `js/milhas.js`, `js/voos.js`.
 - **Convenções:** cores só por variáveis CSS; texto digitado pelo usuário entra na tela com `textContent` (nunca `innerHTML`); número no formato brasileiro via `App.num`.
 - **Pendente:** orçamento, reservas/documentos e comparar destinos ainda não existem.
 - Organize por viagem quando houver mais de uma (ex.: uma subpasta por destino e ano).
