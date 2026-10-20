@@ -61,6 +61,12 @@
       a.rel = 'noopener noreferrer';
       atalhos.appendChild(a);
     });
+    // Atalho para ver as rotas e companhias que operam o trecho (não mostra o preço do dia).
+    var fc = criar('a', 'btn link', 'Rotas no Flight Connections');
+    fc.href = 'https://www.flightconnections.com/flights-from-' + b.origem.toLowerCase() + '-to-' + b.destino.toLowerCase();
+    fc.target = '_blank';
+    fc.rel = 'noopener noreferrer';
+    atalhos.appendChild(fc);
     var aviso = criar('span', 'hint hidden');
     aviso.setAttribute('role', 'status');
     aviso.style.wordBreak = 'break-word';
