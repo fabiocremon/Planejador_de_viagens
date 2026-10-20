@@ -164,3 +164,18 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 .consulta-linha { display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: space-between; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--border); font-size: 14px; }
 .rota details { margin-top: 8px; }
 .rota details .consulta-dia { margin-top: 8px; }
+
+/* Últimas rotas: lista recolhida e fonte menor */
+.rota { font-size: 13px; }
+.rota .viagem-info strong { font-size: 15px; }
+.rota .muted, .rota .hint { font-size: 12px; }
+.rota .btn { min-height: 34px; padding: 0 14px; font-size: 13px; border-radius: 10px; }
+.rota .btn.link { padding: 0 8px; }
+.rota .chip { font-size: 11px; padding: 2px 8px; }
+.consulta-dia { padding: 8px 12px; }
+.consulta-titulo strong { font-size: 13px; }
+.consulta-linha { font-size: 13px; padding: 5px 0; }
+.rota details > summary { list-style: none; display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: 13px; font-weight: 600; color: var(--accent-text); cursor: pointer; }
+.rota details > summary::-webkit-details-marker { display: none; }
+.rota details > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; margin: 0 4px 0 2px; flex: none; }
+.rota details[open] > summary::before { transform: rotate(45deg); }

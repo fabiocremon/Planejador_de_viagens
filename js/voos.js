@@ -292,6 +292,8 @@
     return bloco;
   }
 
+  var rotasAbertas = {}; // idBusca -> lista de consultas aberta
+
   function desenharUltimas() {
     var caixa = $('ultimas');
     caixa.textContent = '';
@@ -326,14 +328,13 @@
       if (!consultas.length) {
         rota.appendChild(criar('p', 'muted', 'Nenhum preço registrado ainda. Use "Refazer busca" para consultar e registrar.'));
       } else {
-        // As 3 consultas mais recentes ficam à vista; as anteriores, recolhidas.
-        consultas.slice(0, 3).forEach(function (c) { rota.appendChild(blocoConsulta(c)); });
-        if (consultas.length > 3) {
-          var det = criar('details', '');
-          det.appendChild(criar('summary', '', 'Ver consultas anteriores (' + (consultas.length - 3) + ')'));
-          consultas.slice(3).forEach(function (c) { det.appendChild(blocoConsulta(c)); });
-          rota.appendChild(det);
-        }
+        // Lista recolhida: clique na seta para ver todos os dias consultados.
+        var det = criar('details', '');
+        det.open = !!rotasAbertas[b.id];
+        det.addEventListener('toggle', function () { rotasAbertas[b.id] = det.open; });
+        det.appendChild(criar('summary', '', 'Ver consultas (' + consultas.length + ') · última em ' + App.data(consultas[0].em)));
+        consultas.forEach(function (c) { det.appendChild(blocoConsulta(c)); });
+        rota.appendChild(det);
       }
       caixa.appendChild(rota);
     });
