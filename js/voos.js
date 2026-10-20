@@ -40,6 +40,86 @@
     else falha();
   }
 
+  var ocultasVoos = {}; // por busca: { idBusca: { 'AAAA-MM-DD': true } }
+
+  // Último preço de cada data de voo em cada data de consulta.
+  function precosPorConsulta(b, vooDia) {
+    var porEm = {};
+    b.registros.forEach(function (r) {
+      if (vooDia && r.voo !== vooDia) return;
+      var chave = vooDia ? r.em : r.em + '|' + r.voo;
+      porEm[chave] = r;
+    });
+    return porEm;
+  }
+
+  function blocoGrafico(b, lista) {
+    var caixaTudo = criar('div', '');
+    caixaTudo.style.margin = '4px 0 12px';
+    caixaTudo.appendChild(criar('strong', '', 'Evolução do preço'));
+    caixaTudo.appendChild(criar('div', 'muted', 'Eixo horizontal: data em que você consultou. Cada linha é um dia de voo.'));
+    var ocultas = ocultasVoos[b.id] = ocultasVoos[b.id] || {};
+
+    var datas = {};
+    b.registros.forEach(function (r) { datas[r.em] = true; });
+    var datasOrd = Object.keys(datas).sort();
+
+    var series = [];
+    var muitos = lista.length > 8; // a paleta tem 8 cores: acima disso, só o menor preço
+    if (muitos) {
+      var menor = {};
+      var ultimos = precosPorConsulta(b, null);
+      Object.keys(ultimos).forEach(function (k) {
+        var r = ultimos[k];
+        if (menor[r.em] == null || r.preco < menor[r.em]) menor[r.em] = r.preco;
+      });
+      series.push({ nome: 'Menor preço', cor: 'var(--s1)', pts: datasOrd.map(function (d) { return { data: d, v: menor[d] }; }) });
+    } else {
+      lista.forEach(function (dia, i) {
+        if (ocultas[dia]) return;
+        var ult = precosPorConsulta(b, dia);
+        var pts = Object.keys(ult).sort().map(function (em) { return { data: em, v: ult[em].preco }; });
+        if (pts.length) series.push({ nome: App.data(dia).slice(0, 5), cor: 'var(--s' + (i + 1) + ')', pts: pts });
+      });
+      // Legenda (liga/desliga cada dia de voo)
+      var com = lista.filter(function (dia) { return b.registros.some(function (r) { return r.voo === dia; }); });
+      if (com.length > 1) {
+        var leg = criar('div', 'legenda');
+        leg.setAttribute('role', 'group');
+        leg.setAttribute('aria-label', 'Mostrar ou ocultar dias de voo');
+        com.forEach(function (dia) {
+          var i = lista.indexOf(dia);
+          var bt = criar('button', '');
+          bt.type = 'button';
+          bt.setAttribute('aria-pressed', ocultas[dia] ? 'false' : 'true');
+          var sw = criar('i', '');
+          sw.style.background = 'var(--s' + (i + 1) + ')';
+          bt.appendChild(sw);
+          bt.appendChild(document.createTextNode('Voo ' + App.data(dia).slice(0, 5)));
+          bt.addEventListener('click', function () { ocultas[dia] = !ocultas[dia]; desenhar(); });
+          leg.appendChild(bt);
+        });
+        caixaTudo.appendChild(leg);
+      }
+    }
+
+    var area = criar('div', 'grafico');
+    if (series.length) {
+      Grafico.linhas(area, {
+        series: series,
+        datas: datasOrd,
+        aria: 'Evolução do preço do voo de ' + b.origem + ' para ' + b.destino + ' por data de consulta. O histórico abaixo traz os mesmos valores.',
+        margemDireita: 70,
+        tituloDica: function (iso) { return 'Consulta de ' + App.data(iso); }
+      });
+    } else {
+      area.appendChild(criar('p', 'muted', 'Todos os dias estão ocultos. Clique em um para mostrar.'));
+    }
+    caixaTudo.appendChild(area);
+    if (b.registros.length < 2) caixaTudo.appendChild(criar('p', 'hint', 'Registre o preço em outro dia para a linha aparecer.'));
+    return caixaTudo;
+  }
+
   function cartao(b) {
     var cart = criar('section', 'card');
     cart.setAttribute('aria-label', b.origem + ' para ' + b.destino);
@@ -62,7 +142,11 @@
       atalhos.appendChild(a);
     });
     // Atalho para ver as rotas e companhias que operam o trecho (não mostra o preço do dia).
-    var fc = criar('a', 'btn link', 'Rotas no Flight Connections');
+    var fc = criar('a', 'btn rota');
+    fc.insertAdjacentHTML('afterbegin', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/></svg>');
+    fc.appendChild(document.createTextNode('Consulta rotas'));
+    fc.title = 'Ver rotas e companhias do trecho no Flight Connections';
+    fc.setAttribute('aria-label', 'Consulta rotas de ' + b.origem + ' para ' + b.destino + ' no Flight Connections');
     fc.href = 'https://www.flightconnections.com/flights-from-' + b.origem.toLowerCase() + '-to-' + b.destino.toLowerCase();
     fc.target = '_blank';
     fc.rel = 'noopener noreferrer';
@@ -79,6 +163,9 @@
     atalhos.appendChild(cp);
     cart.appendChild(atalhos);
     cart.appendChild(aviso);
+
+    // Gráfico: evolução do preço ao longo das datas em que você consultou
+    if (b.registros.length) cart.appendChild(blocoGrafico(b, lista));
 
     // Registrar preço
     var f = criar('form', '');
