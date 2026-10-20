@@ -188,3 +188,10 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 .consulta-dia { padding: 6px 10px; margin-top: 6px; }
 .consulta-titulo strong, .consulta-linha { font-size: 12px; }
 .consulta-linha { padding: 4px 0; }
+
+/* Registrar preço em cada dia do voo */
+.reg-linha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0 0 10px; }
+.reg-linha input { height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--fg); font-family: inherit; font-size: 14px; }
+.reg-linha input:first-child { flex: 0 1 140px; min-width: 0; }
+.reg-linha input.fonte { flex: 1 1 140px; min-width: 0; }
+.reg-linha .btn { min-height: 36px; }

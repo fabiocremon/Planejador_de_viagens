@@ -1,5 +1,5 @@
 // Voos: buscas salvas, atalho para o Google Flights e histórico de preços.
-// Os preços são digitados por você (ou trazidos pelo Claude) com a fonte e a data.
+// Os preços são digitados por você, com a fonte e a data.
 // Nada é consultado automaticamente por esta página.
 (function () {
   var buscas = App.ler('voos', []);
@@ -25,19 +25,6 @@
   function urlGoogleFlights(b, dia) {
     var q = 'Flights to ' + b.destino + ' from ' + b.origem + ' on ' + dia + ' one way';
     return 'https://www.google.com/travel/flights?q=' + encodeURIComponent(q) + '&curr=BRL&hl=pt-BR';
-  }
-
-  function pedidoClaude(b) {
-    var datas = dias(b.de, b.ate).map(App.data).join(', ');
-    return 'Consulte o menor preço só de ida de ' + b.origem + ' para ' + b.destino +
-      ' nos dias ' + datas + ', para 1 adulto, em R$. Informe a fonte e a data da consulta.';
-  }
-
-  function copiar(texto, aviso) {
-    function ok() { aviso.textContent = 'Pedido copiado. Cole no chat com o Claude.'; }
-    function falha() { aviso.textContent = texto; }
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(ok, falha);
-    else falha();
   }
 
   // ----- Gráfico único: uma linha por trecho (menor preço de cada dia de consulta) -----
@@ -126,17 +113,16 @@
     topo.appendChild(criar('span', 'muted', 'Só ida · ' + App.data(b.de) + (b.de !== b.ate ? ' a ' + App.data(b.ate) : '')));
     cart.appendChild(topo);
 
-    // Atalhos
+    // Atalhos: um só botão para o Google Flights (abre no primeiro dia; o calendário do Google mostra os demais).
     var lista = dias(b.de, b.ate);
     var atalhos = criar('div', '');
     atalhos.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px';
-    lista.forEach(function (d) {
-      var a = criar('a', 'btn sec', 'Abrir ' + App.data(d).slice(0, 5));
-      a.href = urlGoogleFlights(b, d);
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      atalhos.appendChild(a);
-    });
+    var gf = criar('a', 'btn sec', 'Abrir no Google Flights');
+    gf.href = urlGoogleFlights(b, lista[0]);
+    gf.target = '_blank';
+    gf.rel = 'noopener noreferrer';
+    gf.title = 'Abre a busca no primeiro dia (' + App.data(lista[0]) + '). Use o calendário do Google para ver os outros dias.';
+    atalhos.appendChild(gf);
     // Atalho para ver as rotas e companhias que operam o trecho (não mostra o preço do dia).
     var fc = criar('a', 'btn rota');
     fc.insertAdjacentHTML('afterbegin', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/></svg>');
@@ -147,62 +133,7 @@
     fc.target = '_blank';
     fc.rel = 'noopener noreferrer';
     atalhos.appendChild(fc);
-    var aviso = criar('span', 'hint hidden');
-    aviso.setAttribute('role', 'status');
-    aviso.style.wordBreak = 'break-word';
-    var cp = criar('button', 'btn', 'Copiar pedido para o Claude');
-    cp.type = 'button';
-    cp.addEventListener('click', function () {
-      aviso.classList.remove('hidden');
-      copiar(pedidoClaude(b), aviso);
-    });
-    atalhos.appendChild(cp);
     cart.appendChild(atalhos);
-    cart.appendChild(aviso);
-
-    // Registrar preço
-    var f = criar('form', '');
-    f.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;margin:12px 0';
-    var gData = criar('div', 'field');
-    var lData = criar('label', '', 'Data do voo');
-    var sData = criar('select', '');
-    sData.id = 'voo-' + b.id;
-    lData.htmlFor = sData.id;
-    lista.forEach(function (d) { var o = criar('option', '', App.data(d)); o.value = d; sData.appendChild(o); });
-    gData.appendChild(lData); gData.appendChild(sData);
-
-    var gPreco = criar('div', 'field');
-    var lPreco = criar('label', '', 'Preço (R$)');
-    var iPreco = criar('input', '');
-    iPreco.id = 'preco-' + b.id;
-    iPreco.inputMode = 'decimal';
-    iPreco.placeholder = 'ex.: 1.250,00';
-    iPreco.required = true;
-    lPreco.htmlFor = iPreco.id;
-    gPreco.appendChild(lPreco); gPreco.appendChild(iPreco);
-
-    var gFonte = criar('div', 'field');
-    var lFonte = criar('label', '', 'Fonte');
-    var iFonte = criar('input', '');
-    iFonte.id = 'fonte-' + b.id;
-    iFonte.value = 'Google Flights';
-    lFonte.htmlFor = iFonte.id;
-    gFonte.appendChild(lFonte); gFonte.appendChild(iFonte);
-
-    var reg = criar('button', 'btn', 'Registrar preço');
-    reg.type = 'submit';
-    f.appendChild(gData); f.appendChild(gPreco); f.appendChild(gFonte); f.appendChild(reg);
-    f.addEventListener('submit', function (ev) {
-      ev.preventDefault();
-      var preco = App.num(iPreco.value);
-      if (!(preco > 0)) { iPreco.focus(); return; }
-      b.registros.push({
-        id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-        voo: sData.value, preco: preco, fonte: iFonte.value.trim(), em: hoje()
-      });
-      salvar(); desenhar();
-    });
-    cart.appendChild(f);
 
     // Histórico por data de voo
     var hist = criar('div', '');
@@ -225,6 +156,30 @@
         linha.appendChild(criar('span', '', txt));
       }
       hist.appendChild(linha);
+      // Registrar preço deste dia (fonte já vem como Google Flights, mas pode ser trocada)
+      var f = criar('form', 'reg-linha');
+      var iPreco = criar('input', '');
+      iPreco.inputMode = 'decimal';
+      iPreco.placeholder = 'Preço (R$)';
+      iPreco.setAttribute('aria-label', 'Preço do voo em ' + App.data(d));
+      iPreco.required = true;
+      var iFonte = criar('input', 'fonte');
+      iFonte.value = 'Google Flights';
+      iFonte.setAttribute('aria-label', 'Fonte do preço do voo em ' + App.data(d));
+      var reg = criar('button', 'btn sec', 'Registrar');
+      reg.type = 'submit';
+      f.appendChild(iPreco); f.appendChild(iFonte); f.appendChild(reg);
+      f.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var preco = App.num(iPreco.value);
+        if (!(preco > 0)) { iPreco.focus(); return; }
+        b.registros.push({
+          id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+          voo: d, preco: preco, fonte: iFonte.value.trim(), em: hoje()
+        });
+        salvar(); desenhar();
+      });
+      hist.appendChild(f);
       regs.slice().reverse().forEach(function (r) {
         var l = criar('div', 'row');
         l.style.cssText = 'padding:6px 0 6px 16px;border-top:0';
