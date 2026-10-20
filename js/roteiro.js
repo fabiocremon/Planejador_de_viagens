@@ -5,7 +5,15 @@
   var diaAtual = 1;
 
   function $(id) { return document.getElementById(id); }
-  function salvar() { App.gravar('roteiro', estado); }
+  // Salva o roteiro e mantém em dia a viagem salva que está aberta.
+  function salvar() {
+    App.gravar('roteiro', estado);
+    var id = App.ler('viagem_aberta', null);
+    if (!id) return;
+    var lista = App.ler('viagens', []);
+    lista.forEach(function (t) { if (t.id === id) t.roteiro = estado; });
+    App.gravar('viagens', lista);
+  }
 
   // Número de dias sugerido pelas datas da viagem (só na primeira vez).
   if (viagem.ida && viagem.volta && estado.atividades.length === 0 && estado.dias === 1) {

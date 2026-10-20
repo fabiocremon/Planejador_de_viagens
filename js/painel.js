@@ -1,4 +1,4 @@
-// Painel: viagens salvas, próxima viagem, valor do milheiro (com gráfico) e saldos.
+// Painel: viagens salvas, valor do milheiro (com gráfico) e saldos.
 // Tudo fica salvo só neste navegador.
 (function () {
   function $(id) { return document.getElementById(id); }
@@ -11,94 +11,75 @@
   function hoje() { return new Date().toISOString().slice(0, 10); }
 
   // =====================================================================
-  // Próxima viagem (viagem atual) + viagens salvas
+  // Viagens salvas (criar, editar, abrir). Cada viagem guarda dados + roteiro.
+  // A viagem aberta fica em 'viagem' e 'roteiro'; a página Roteiro mantém a salva em dia.
   // =====================================================================
   var CAMPOS = ['destino', 'saida', 'ida', 'volta', 'pessoas'];
   var STATUS = ['Planejando', 'Confirmada', 'Realizada'];
-  var el = {};
-  CAMPOS.forEach(function (c) { el[c] = $(c); });
+  var d = {};
+  CAMPOS.forEach(function (c) { d[c] = $('v-' + c); });
 
   var viagens = App.ler('viagens', []);
   var abertaId = App.ler('viagem_aberta', null);
+  var editandoId = null;
 
-  function lerForm() {
-    var v = {};
-    CAMPOS.forEach(function (c) { v[c] = el[c].value; });
-    return v;
-  }
-  function preencherForm(v) {
-    CAMPOS.forEach(function (c) { el[c].value = v[c] != null ? v[c] : ''; });
-    resumo();
-  }
-  function resumo() {
-    var partes = [];
-    if (el.destino.value.trim()) partes.push(el.destino.value.trim());
-    if (el.ida.value && el.volta.value) partes.push(App.data(el.ida.value) + ' a ' + App.data(el.volta.value));
-    else if (el.ida.value) partes.push('ida em ' + App.data(el.ida.value));
-    if (el.pessoas.value) partes.push(el.pessoas.value + (el.pessoas.value === '1' ? ' pessoa' : ' pessoas'));
-    $('resumoViagem').textContent = partes.length ? partes.join(' · ') : 'Preencha os dados';
-  }
   function gravarViagens() {
     App.gravar('viagens', viagens);
     App.gravar('viagem_aberta', abertaId);
   }
-  function aviso(txt) { $('salvaMsg').textContent = txt; }
 
-  preencherForm(App.ler('viagem', {}));
-  CAMPOS.forEach(function (c) {
-    el[c].addEventListener('input', function () {
-      App.gravar('viagem', lerForm());
-      resumo();
+  function abrirViagem(t) {
+    App.gravar('viagem', t.dados);
+    App.gravar('roteiro', t.roteiro || { dias: 1, atividades: [] });
+    abertaId = t.id;
+    gravarViagens();
+    window.location.href = 'roteiro.html';
+  }
+
+  var dlg = $('dlgViagem');
+  function abrirDialogo(t) {
+    editandoId = t ? t.id : null;
+    $('dlgTitulo').textContent = t ? 'Editar viagem' : 'Nova viagem';
+    $('dlgEnviar').textContent = t ? 'Salvar alterações' : 'Criar e abrir roteiro';
+    CAMPOS.forEach(function (c) { d[c].value = t && t.dados[c] != null ? t.dados[c] : ''; });
+    $('dlgErro').classList.add('hidden');
+    dlg.showModal();
+    d.destino.focus();
+  }
+
+  $('novaViagem').addEventListener('click', function () { abrirDialogo(null); });
+  $('dlgCancelar').addEventListener('click', function () { dlg.close(); });
+
+  $('formViagem').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var erro = $('dlgErro');
+    var dados = {};
+    CAMPOS.forEach(function (c) { dados[c] = d[c].value.trim(); });
+    if (!dados.destino) { erro.textContent = 'Informe o destino.'; erro.classList.remove('hidden'); d.destino.focus(); return; }
+    if (dados.ida && dados.volta && dados.volta < dados.ida) { erro.textContent = 'A volta não pode ser antes da ida.'; erro.classList.remove('hidden'); return; }
+
+    if (editandoId) {
+      var t = viagens.filter(function (x) { return x.id === editandoId; })[0];
+      if (t) {
+        t.dados = dados;
+        if (abertaId === t.id) App.gravar('viagem', dados);
+        gravarViagens();
+      }
+      dlg.close();
       desenharViagens();
-    });
-  });
-
-  $('salvarViagem').addEventListener('click', function () {
-    var dados = lerForm();
-    if (!dados.destino.trim()) { aviso('Informe o destino antes de salvar.'); el.destino.focus(); return; }
-    var roteiro = App.ler('roteiro', { dias: 1, atividades: [] });
-    var existente = viagens.filter(function (t) { return t.id === abertaId; })[0];
-    if (existente) {
-      existente.dados = dados;
-      existente.roteiro = roteiro;
-      aviso('Viagem "' + dados.destino.trim() + '" atualizada.');
     } else {
       var nova = {
         id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
         status: 'Planejando',
         dados: dados,
-        roteiro: roteiro
+        roteiro: { dias: 1, atividades: [] }
       };
       viagens.push(nova);
-      abertaId = nova.id;
-      aviso('Viagem "' + dados.destino.trim() + '" salva como Planejando.');
+      gravarViagens();
+      dlg.close();
+      abrirViagem(nova);
     }
-    gravarViagens();
-    desenharViagens();
   });
-
-  $('novaViagem').addEventListener('click', function () {
-    if (!confirm('Começar uma nova viagem? Os dados e o roteiro atuais saem da tela. Se ainda não salvou, salve antes.')) return;
-    App.gravar('viagem', {});
-    App.gravar('roteiro', { dias: 1, atividades: [] });
-    abertaId = null;
-    gravarViagens();
-    preencherForm({});
-    aviso('Nova viagem em branco.');
-    desenharViagens();
-  });
-
-  function abrirViagem(t) {
-    if (!confirm('Abrir "' + t.dados.destino + '"? Os dados e o roteiro atuais serão substituídos. Se ainda não salvou, cancele e salve antes.')) return;
-    App.gravar('viagem', t.dados);
-    App.gravar('roteiro', t.roteiro);
-    abertaId = t.id;
-    gravarViagens();
-    preencherForm(t.dados);
-    aviso('Viagem "' + t.dados.destino + '" aberta. O roteiro dela está em Roteiro.');
-    desenharViagens();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
 
   function desenharViagens() {
     var caixa = $('viagens');
@@ -133,15 +114,19 @@
         sel.appendChild(o);
       });
       sel.addEventListener('change', function () { t.status = sel.value; gravarViagens(); });
-      var abrir = criar('button', 'btn sec', 'Abrir');
+      var abrir = criar('button', 'btn sec', 'Abrir roteiro');
       abrir.type = 'button';
-      abrir.setAttribute('aria-label', 'Abrir ' + t.dados.destino);
+      abrir.setAttribute('aria-label', 'Abrir roteiro de ' + t.dados.destino);
       abrir.addEventListener('click', function () { abrirViagem(t); });
+      var edit = criar('button', 'btn link', 'Editar');
+      edit.type = 'button';
+      edit.setAttribute('aria-label', 'Editar dados de ' + t.dados.destino);
+      edit.addEventListener('click', function () { abrirDialogo(t); });
       var rem = criar('button', 'btn link', 'Remover');
       rem.type = 'button';
       rem.setAttribute('aria-label', 'Remover ' + t.dados.destino);
       rem.addEventListener('click', function () {
-        if (!confirm('Remover a viagem salva "' + t.dados.destino + '" e o roteiro dela? Os dados na tela não mudam.')) return;
+        if (!confirm('Remover a viagem "' + t.dados.destino + '" e o roteiro dela?')) return;
         viagens = viagens.filter(function (x) { return x.id !== t.id; });
         if (abertaId === t.id) abertaId = null;
         gravarViagens();
@@ -149,6 +134,7 @@
       });
       acoes.appendChild(sel);
       acoes.appendChild(abrir);
+      acoes.appendChild(edit);
       acoes.appendChild(rem);
 
       item.appendChild(info);

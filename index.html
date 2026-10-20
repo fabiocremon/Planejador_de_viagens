@@ -20,32 +20,11 @@
     <section class="card" aria-label="Viagens salvas">
       <div class="row first" style="padding-top:0">
         <h2>Viagens salvas</h2>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" type="button" id="salvarViagem">Salvar viagem atual</button>
-          <button class="btn sec" type="button" id="novaViagem">Nova viagem</button>
-        </div>
+        <button class="btn" type="button" id="novaViagem">+ Nova viagem</button>
       </div>
-      <span class="hint" id="salvaMsg" role="status">Salve a viagem atual (dados e roteiro) para abrir depois. Se editar o roteiro, volte aqui e salve de novo para atualizar.</span>
+      <span class="hint">Crie uma viagem para abrir o roteiro dela. O roteiro é salvo automaticamente.</span>
       <div id="viagens" style="margin-top:8px"></div>
       <p class="muted hidden" id="semViagens" style="margin:8px 0 0">Nenhuma viagem salva ainda.</p>
-    </section>
-
-    <section class="card" aria-label="Próxima viagem" style="display:flex;flex-direction:column;gap:16px">
-      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
-        <h2>Próxima viagem</h2>
-        <span class="tag" id="resumoViagem">Preencha os dados</span>
-      </div>
-      <div class="form-grid">
-        <div class="field"><label for="destino">Destino</label><input id="destino" placeholder="cidade ou país" autocomplete="off"></div>
-        <div class="field"><label for="saida">Cidade de saída</label><input id="saida" placeholder="de onde você sai" autocomplete="off"></div>
-        <div class="field"><label for="ida">Ida</label><input id="ida" type="date"></div>
-        <div class="field"><label for="volta">Volta</label><input id="volta" type="date"></div>
-        <div class="field"><label for="pessoas">Pessoas</label><input id="pessoas" type="number" min="1" inputmode="numeric" placeholder="quantas"></div>
-      </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <a class="btn" href="roteiro.html">Abrir roteiro</a>
-        <a class="btn sec" href="milhas.html">Comparar milhas</a>
-      </div>
     </section>
 
     <section aria-label="Ferramentas" style="display:flex;flex-direction:column;gap:14px">
@@ -86,6 +65,23 @@
     </section>
   </main>
 </div>
+<dialog id="dlgViagem" aria-labelledby="dlgTitulo">
+  <form id="formViagem" style="display:flex;flex-direction:column;gap:16px">
+    <h2 id="dlgTitulo">Nova viagem</h2>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr">
+      <div class="field" style="grid-column:1/-1"><label for="v-destino">Destino</label><input id="v-destino" placeholder="cidade ou país" autocomplete="off"></div>
+      <div class="field" style="grid-column:1/-1"><label for="v-saida">Cidade de saída</label><input id="v-saida" placeholder="de onde você sai" autocomplete="off"></div>
+      <div class="field"><label for="v-ida">Ida</label><input id="v-ida" type="date"></div>
+      <div class="field"><label for="v-volta">Volta</label><input id="v-volta" type="date"></div>
+      <div class="field"><label for="v-pessoas">Pessoas</label><input id="v-pessoas" type="number" min="1" inputmode="numeric" placeholder="quantas"></div>
+    </div>
+    <span class="hint hidden" id="dlgErro" role="alert"></span>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn link" type="button" id="dlgCancelar">Cancelar</button>
+      <button class="btn" type="submit" id="dlgEnviar">Criar e abrir roteiro</button>
+    </div>
+  </form>
+</dialog>
 <script src="js/app.js"></script>
 <script src="js/painel.js"></script>
 </body>
