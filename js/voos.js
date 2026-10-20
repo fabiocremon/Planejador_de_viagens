@@ -299,13 +299,31 @@
     caixa.textContent = '';
     $('vazio').classList.toggle('hidden', buscas.length > 0);
     buscas.slice().reverse().forEach(function (b) {
-      var rota = criar('div', 'rota');
-      var topo = criar('div', 'viagem-item');
-      topo.style.cssText = 'border-top:0;padding:0 0 8px';
-      var info = criar('div', 'viagem-info');
-      info.appendChild(criar('strong', '', nomeTrecho(b)));
-      info.appendChild(criar('span', 'muted', 'Só ida · ' + App.data(b.de) + (b.de !== b.ate ? ' a ' + App.data(b.ate) : '') + ' · 1 adulto'));
+      var rota = criar('div', 'rota-box');
+      var topo = criar('div', 'rota-linha');
+      topo.appendChild(criar('strong', '', nomeTrecho(b)));
+      topo.appendChild(criar('span', 'muted', 'Só ida · ' + App.data(b.de) + (b.de !== b.ate ? ' a ' + App.data(b.ate) : '') + ' · 1 adulto'));
+      var consultas = consultasDaRota(b);
+      var lista = criar('div', 'rota-lista');
+      if (consultas.length) {
+        // Seta ao lado de "adulto": clique para ver os dias consultados.
+        var seta = criar('button', 'rota-seta', 'Ver consultas (' + consultas.length + ')');
+        seta.type = 'button';
+        function aplicar() {
+          var aberta = !!rotasAbertas[b.id];
+          seta.setAttribute('aria-expanded', aberta ? 'true' : 'false');
+          lista.classList.toggle('hidden', !aberta);
+        }
+        seta.addEventListener('click', function () { rotasAbertas[b.id] = !rotasAbertas[b.id]; aplicar(); });
+        aplicar();
+        topo.appendChild(seta);
+        consultas.forEach(function (c) { lista.appendChild(blocoConsulta(c)); });
+      } else {
+        topo.appendChild(criar('span', 'muted', 'Sem preços registrados'));
+        lista.classList.add('hidden');
+      }
       var acoes = criar('div', 'viagem-acoes');
+      acoes.style.marginLeft = 'auto';
       var refazer = criar('button', 'btn sec', 'Refazer busca');
       refazer.type = 'button';
       refazer.setAttribute('aria-label', 'Refazer a busca ' + nomeTrecho(b) + ' nas mesmas condições');
@@ -320,22 +338,9 @@
       });
       acoes.appendChild(refazer);
       acoes.appendChild(rem);
-      topo.appendChild(info);
       topo.appendChild(acoes);
       rota.appendChild(topo);
-
-      var consultas = consultasDaRota(b);
-      if (!consultas.length) {
-        rota.appendChild(criar('p', 'muted', 'Nenhum preço registrado ainda. Use "Refazer busca" para consultar e registrar.'));
-      } else {
-        // Lista recolhida: clique na seta para ver todos os dias consultados.
-        var det = criar('details', '');
-        det.open = !!rotasAbertas[b.id];
-        det.addEventListener('toggle', function () { rotasAbertas[b.id] = det.open; });
-        det.appendChild(criar('summary', '', 'Ver consultas (' + consultas.length + ') · última em ' + App.data(consultas[0].em)));
-        consultas.forEach(function (c) { det.appendChild(blocoConsulta(c)); });
-        rota.appendChild(det);
-      }
+      rota.appendChild(lista);
       caixa.appendChild(rota);
     });
   }
