@@ -9,16 +9,21 @@
   --accent-text: #B4521A;
   --soft: #FBEBDD;
   --on-accent: #1A1A1A;
+  --alerta: #B3261E;
+  --aviso: #8A5A00;
+  --ok: #2E6B34;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema="claro"]) {
     --bg: #0A0A0A; --surface: #151515; --border: #2A2A2A; --fg: #F5F5F5;
     --muted: #A3A3A3; --accent-text: #E8895A; --soft: #2A1A10;
+    --alerta: #FF8A80; --aviso: #E0B25A; --ok: #7CCB84;
   }
 }
 :root[data-tema="escuro"] {
   --bg: #0A0A0A; --surface: #151515; --border: #2A2A2A; --fg: #F5F5F5;
   --muted: #A3A3A3; --accent-text: #E8895A; --soft: #2A1A10;
+  --alerta: #FF8A80; --aviso: #E0B25A; --ok: #7CCB84;
 }
 
 * { box-sizing: border-box; }
@@ -275,3 +280,14 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 
 .resumo-dia.vazio { padding: 6px 0; }
 .resumo-dia.vazio .resumo-dia-cab { margin-bottom: 0; }
+
+/* Alertas (prazos e validades) */
+.t-alerta { color: var(--alerta); font-weight: 600; }
+.t-aviso { color: var(--aviso); font-weight: 600; }
+.t-ok { color: var(--ok); font-weight: 600; }
+.lista-itens { display: flex; flex-direction: column; }
+.item-linha { padding: 12px 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.item-linha:first-child { border-top: 0; padding-top: 0; }
+.item-topo { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.item-acoes { display: flex; gap: 4px; margin-left: -10px; flex-wrap: wrap; }
+.item-acoes .btn { min-height: 30px; font-size: 13px; padding: 0 10px; }
