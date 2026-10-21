@@ -43,10 +43,20 @@
 
       <aside style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:20px">
         <section class="card" aria-label="Custos">
-          <h2>Custos</h2>
-          <div class="row" style="margin-top:10px"><span class="muted">Total do dia</span><strong id="totalDia">R$ 0,00</strong></div>
+          <div class="row first" style="padding-top:0">
+            <h2>Custos</h2>
+            <button class="btn" type="button" id="novoCusto" aria-label="Adicionar custo" title="Adicionar custo" style="min-width:40px;padding:0 14px;font-size:20px;line-height:1">+</button>
+          </div>
+          <div class="row" style="margin-top:6px"><span class="muted">Total do dia</span><strong id="totalDia">R$ 0,00</strong></div>
+          <div class="row"><span class="muted">Custos lançados</span><strong id="totalCustos">R$ 0,00</strong></div>
           <div class="row"><span class="muted">Total da viagem</span><strong id="totalViagem" style="color:var(--accent-text)">R$ 0,00</strong></div>
-          <p class="hint" style="margin:8px 0 0">Soma só o que você informou. Confirme preços na fonte antes de reservar.</p>
+          <div id="custosLista" style="margin-top:10px"></div>
+          <p class="muted hidden" id="semCustos" style="margin:10px 0 0">Nenhum custo lançado. Use o + para incluir.</p>
+          <details style="margin-top:10px" id="custosTipoBox" class="hidden">
+            <summary>Por tipo</summary>
+            <div id="custosTipo"></div>
+          </details>
+          <p class="hint" style="margin:8px 0 0">Total da viagem = custos das atividades + custos lançados aqui. Confirme preços na fonte antes de reservar.</p>
         </section>
         <section class="card" aria-label="Lembretes">
           <h2>Lembretes</h2>
@@ -56,6 +66,28 @@
     </div>
   </main>
 </div>
+<dialog id="dlgCusto" aria-labelledby="custoTitulo">
+  <form id="formCusto" style="display:flex;flex-direction:column;gap:16px">
+    <h2 id="custoTitulo">Adicionar custo</h2>
+    <div class="field"><label for="cOrigem">De onde vem o custo</label><input id="cOrigem" required placeholder="ex.: Hotel Miraflores, LATAM, seguro Assist Card" autocomplete="off"></div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr">
+      <div class="field"><label for="cTipo">Tipo</label>
+        <select id="cTipo">
+          <option>Passagem aérea</option><option>Hospedagem</option><option>Transporte</option><option>Passeio</option><option>Alimentação</option><option>Seguro-viagem</option><option>Visto e documentos</option><option>Câmbio e taxas</option><option>Compras</option><option>Outro</option>
+        </select></div>
+      <div class="field"><label for="cValor">Valor (R$)</label><input id="cValor" required inputmode="decimal" placeholder="ex.: 1.250,00" autocomplete="off"></div>
+      <div class="field"><label for="cData">Data do gasto</label><input id="cData" type="date"></div>
+      <div class="field"><label for="cSituacao">Situação</label>
+        <select id="cSituacao"><option>Previsto</option><option>Pago</option></select></div>
+    </div>
+    <div class="field"><label for="cObs">Observação</label><input id="cObs" placeholder="opcional: forma de pagamento, parcelas, reserva…" autocomplete="off"></div>
+    <span class="hint hidden" id="cErro" role="alert"></span>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn link" type="button" id="cCancelar">Cancelar</button>
+      <button class="btn" type="submit" id="cEnviar">Adicionar</button>
+    </div>
+  </form>
+</dialog>
 <script src="js/app.js"></script>
 <script src="js/roteiro.js"></script>
 </body>
