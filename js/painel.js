@@ -28,12 +28,24 @@
     App.gravar('viagem_aberta', abertaId);
   }
 
-  function abrirViagem(t) {
+  function abrirViagem(t, pagina) {
     App.gravar('viagem', t.dados);
     App.gravar('roteiro', t.roteiro || { dias: 1, atividades: [] });
     abertaId = t.id;
     gravarViagens();
-    window.location.href = 'roteiro.html';
+    window.location.href = pagina || 'roteiro.html';
+  }
+
+  // Contagem regressiva: "faltam N dias", "começa amanhã", "em andamento" ou nada (já passou).
+  function contagem(t) {
+    var ida = t.dados.ida, volta = t.dados.volta || t.dados.ida;
+    if (!ida || t.status === 'Realizada') return null;
+    var n = App.diasAte(ida);
+    if (n > 1) return { txt: 'faltam ' + n + ' dias', n: n };
+    if (n === 1) return { txt: 'começa amanhã', n: n };
+    if (n === 0) return { txt: 'começa hoje', n: n };
+    if (App.diasAte(volta) >= 0) return { txt: 'em andamento', n: 0 };
+    return null;
   }
 
   var dlg = $('dlgViagem');
@@ -96,6 +108,8 @@
       topo.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;align-items:center';
       topo.appendChild(criar('strong', '', t.dados.destino));
       if (t.id === abertaId) topo.appendChild(criar('span', 'chip', 'Aberta agora'));
+      var cont = contagem(t);
+      if (cont) topo.appendChild(criar('span', 'chip', cont.txt));
       info.appendChild(topo);
       var det = [];
       if (t.dados.ida) det.push(App.data(t.dados.ida) + (t.dados.volta ? ' a ' + App.data(t.dados.volta) : ''));
@@ -141,8 +155,77 @@
       item.appendChild(acoes);
       caixa.appendChild(item);
     });
+    desenharPrazos();
   }
   desenharViagens();
+
+  // =====================================================================
+  // Próximos prazos (reúne as viagens salvas e os saldos de pontos)
+  // =====================================================================
+  var mostrarTodosPrazos = false;
+  function relativo(n) {
+    if (n === 0) return 'hoje';
+    if (n === 1) return 'amanhã';
+    if (n > 1) return 'em ' + n + ' dias';
+    return 'há ' + (-n) + (n === -1 ? ' dia' : ' dias');
+  }
+  function coletarPrazos() {
+    var itens = [];
+    viagens.forEach(function (t) {
+      if (t.status === 'Realizada') return;
+      var r = t.roteiro || {};
+      var destino = t.dados.destino;
+      function add(data, texto, pagina, forte) { if (data) itens.push({ data: data, texto: texto, viagem: t, destino: destino, pagina: pagina, forte: !!forte }); }
+      (r.lembretes || []).forEach(function (l) { if (!l.feito) add(l.data, 'Lembrete: ' + l.texto, 'roteiro.html'); });
+      (r.reservas || []).forEach(function (x) { add(x.cancelamento, 'Cancelamento grátis: ' + x.nome, 'reservas.html'); });
+      (r.custos || []).forEach(function (c) { if (c.situacao === 'Previsto') add(c.data, 'Pagar: ' + c.origem + ' (' + App.brl(c.valor) + ')', 'roteiro.html'); });
+      var ref = t.dados.volta || t.dados.ida || '';
+      (r.documentos || []).forEach(function (d) {
+        if (!d.validade) return;
+        var antes = ref && d.validade < ref;
+        var perto = App.diasAte(d.validade) <= 120;
+        if (antes) add(d.validade, 'Vence antes da volta: ' + d.tipo + ' de ' + d.pessoa, 'reservas.html', true);
+        else if (perto) add(d.validade, 'Validade: ' + d.tipo + ' de ' + d.pessoa, 'reservas.html');
+      });
+    });
+    Object.keys(saldos || {}).forEach(function (nome) {
+      var sd = saldos[nome];
+      if (sd && sd.ativo && sd.validade) itens.push({ data: sd.validade, texto: 'Pontos vencem: ' + nome + (sd.saldo ? ' (' + App.inteiro(App.num(sd.saldo)) + ')' : ''), viagem: null, destino: '', pagina: '', forte: false });
+    });
+    // Só os de até 30 dias atrás em diante.
+    return itens.filter(function (i) { return App.diasAte(i.data) >= -30; })
+      .sort(function (a, b) { return a.data.localeCompare(b.data); });
+  }
+  function desenharPrazos() {
+    var caixa = $('prazos');
+    caixa.textContent = '';
+    var todos = coletarPrazos();
+    $('semPrazos').classList.toggle('hidden', todos.length > 0);
+    var lim = 6;
+    var lista = mostrarTodosPrazos ? todos : todos.slice(0, lim);
+    lista.forEach(function (i) {
+      var n = App.diasAte(i.data);
+      var linha = criar('div', 'prazo-item');
+      linha.appendChild(criar('span', 'prazo-data', App.data(i.data)));
+      var meio = criar('div', 'prazo-meio');
+      meio.appendChild(criar('span', i.forte ? 't-alerta' : '', i.texto));
+      if (i.destino) meio.appendChild(criar('span', 'chip', i.destino));
+      linha.appendChild(meio);
+      linha.appendChild(criar('span', n < 0 || n <= 7 ? 't-alerta' : (n <= 30 ? 't-aviso' : 'muted'), relativo(n)));
+      if (i.viagem) {
+        var ab = criar('button', 'btn link', 'Abrir');
+        ab.type = 'button';
+        ab.setAttribute('aria-label', 'Abrir ' + i.texto + ' (' + i.destino + ')');
+        ab.addEventListener('click', function () { abrirViagem(i.viagem, i.pagina); });
+        linha.appendChild(ab);
+      } else { linha.appendChild(criar('span', '', '')); }
+      caixa.appendChild(linha);
+    });
+    var mais = $('prazosMais');
+    mais.classList.toggle('hidden', todos.length <= lim);
+    mais.textContent = mostrarTodosPrazos ? 'Mostrar menos' : 'Mostrar todos (' + todos.length + ')';
+  }
+  $('prazosMais').addEventListener('click', function () { mostrarTodosPrazos = !mostrarTodosPrazos; desenharPrazos(); });
 
   // =====================================================================
   // Valor do milheiro na operadora
@@ -379,6 +462,7 @@
     nomes.forEach(function (n) { delete saldos[n]; delete marcados[n]; });
     gravarSaldos();
     desenharSaldos();
+    desenharPrazos();
   });
 
   $('formSaldo').addEventListener('submit', function (ev) {
@@ -389,6 +473,8 @@
     gravarSaldos();
     dlgSal.close();
     desenharSaldos();
+    desenharPrazos();
   });
   desenharSaldos();
+  desenharPrazos();
 })();

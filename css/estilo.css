@@ -298,3 +298,11 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 .barra > i.quase { background: var(--aviso); }
 .barra > i.estourou { background: var(--alerta); }
 @media print { .barra { border: 1px solid var(--border); } }
+
+/* Próximos prazos (Painel) */
+.prazo-item { display: grid; grid-template-columns: 96px 1fr auto auto; gap: 4px 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.prazo-item:first-child { border-top: 0; }
+.prazo-data { color: var(--muted); font-size: 13px; }
+.prazo-meio { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-width: 0; }
+.prazo-item .btn { min-height: 28px; font-size: 12px; padding: 0 8px; }
+@media (max-width: 640px) { .prazo-item { grid-template-columns: 1fr auto; } .prazo-data { grid-column: 1 / -1; } }

@@ -27,10 +27,20 @@
       <p class="muted hidden" id="semViagens" style="margin:8px 0 0">Nenhuma viagem salva ainda.</p>
     </section>
 
+    <section class="card" aria-label="Próximos prazos" id="cardPrazos">
+      <div class="row first" style="padding-top:0">
+        <div><h2>Próximos prazos</h2><span class="muted">Lembretes, cancelamentos, pagamentos, documentos e pontos que vencem.</span></div>
+      </div>
+      <div id="prazos" style="margin-top:8px"></div>
+      <p class="muted" id="semPrazos" style="margin:8px 0 0">Nenhum prazo à vista.</p>
+      <button class="btn link hidden" type="button" id="prazosMais" style="margin-top:6px"></button>
+    </section>
+
     <section aria-label="Ferramentas" style="display:flex;flex-direction:column;gap:14px">
       <h2>Ferramentas</h2>
       <div class="tools">
         <a class="card tool" href="roteiro.html"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span><strong>Roteiro dia a dia</strong><span class="muted">Atrações, horários e custos por dia.</span></a>
+        <a class="card tool" href="reservas.html"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg></span><strong>Reservas e documentos</strong><span class="muted">Prazos de cancelamento e validades.</span></a>
         <a class="card tool" href="milhas.html"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12h6M12 9v6"/></svg></span><strong>Milhas x dinheiro</strong><span class="muted">Os dois cenários lado a lado.</span></a>
         <a class="card tool" href="voos.html"><span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5a2.1 2.1 0 0 0-3-3L13 8 4.8 6.2 3.5 7.5l6.7 3.7-3 3-2.7-.5L3 15l4 2 2 4 1.3-1.5-.5-2.7 3-3 3.7 6.7z"/></svg></span><strong>Voos</strong><span class="muted">Buscas salvas e histórico de preços.</span></a>
       </div>
