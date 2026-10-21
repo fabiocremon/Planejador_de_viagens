@@ -127,9 +127,15 @@
     var alvo = document.getElementById('lateral');
     if (!alvo) return;
     var atual = document.body.getAttribute('data-pagina');
-    var links = PAGINAS.map(function (p) {
-      return '<a href="' + p[1] + '" title="' + p[2] + '"' + (p[0] === atual ? ' class="on" aria-current="page"' : '') + '>' + svg(ICONES[p[3]], 20) + '<span class="rot">' + p[2] + '</span></a>';
-    }).join('');
+    function montarLinks(lista) {
+      return lista.map(function (p) {
+        return '<a href="' + p[1] + '" title="' + p[2] + '"' + (p[0] === atual ? ' class="on" aria-current="page"' : '') + '>' + svg(ICONES[p[3]], 20) + '<span class="rot">' + p[2] + '</span></a>';
+      }).join('');
+    }
+    // Dicas e Como usar ficam abaixo da linha separadora.
+    var SECUNDARIAS = ['dicas', 'como-usar'];
+    var links = montarLinks(PAGINAS.filter(function (p) { return SECUNDARIAS.indexOf(p[0]) < 0; }));
+    var linksExtra = montarLinks(PAGINAS.filter(function (p) { return SECUNDARIAS.indexOf(p[0]) >= 0; }));
     alvo.innerHTML =
       '<div class="brand"><span class="mark">' +
       svg('<path d="M17.8 19.2 16 11l3.5-3.5a2.1 2.1 0 0 0-3-3L13 8 4.8 6.2 3.5 7.5l6.7 3.7-3 3-2.7-.5L3 15l4 2 2 4 1.3-1.5-.5-2.7 3-3 3.7 6.7z"/>', 20) +
@@ -137,6 +143,7 @@
       '<button type="button" class="recolher" id="recolherMenu" aria-label="Recolher menu" aria-expanded="true" title="Recolher menu">&laquo;</button></div>' +
       '<nav class="nav" aria-label="Principal">' + links + '</nav>' +
       '<div class="theme-box">' +
+      '<nav class="nav" aria-label="Ajuda">' + linksExtra + '</nav>' +
       '<div class="theme" role="group" aria-label="Tema">' +
       '<button type="button" data-tema="claro">Claro</button>' +
       '<button type="button" data-tema="escuro">Escuro</button></div>' +
