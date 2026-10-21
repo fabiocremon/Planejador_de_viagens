@@ -58,6 +58,7 @@
           <div class="row" style="margin-top:6px"><span class="muted">Total do dia</span><strong id="totalDia">R$ 0,00</strong></div>
           <div class="row"><span class="muted">Custos lançados</span><strong id="totalCustos">R$ 0,00</strong></div>
           <div class="row"><span class="muted">Total da viagem</span><strong id="totalViagem" style="color:var(--accent-text)">R$ 0,00</strong></div>
+          <div id="orcBloco" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"></div>
           <p class="muted hidden" id="semCustos" style="margin:10px 0 0">Nenhum custo lançado. Use o + para incluir.</p>
           <p class="hint" style="margin:8px 0 0">Total da viagem = custos das atividades + custos lançados aqui. Confirme preços na fonte antes de reservar.</p>
         </section>
@@ -108,6 +109,20 @@
     <div id="custosDetalhe"></div>
   </div>
 </dialog>
+<dialog id="dlgOrc" aria-labelledby="orcTitulo">
+  <form id="formOrc" style="display:flex;flex-direction:column;gap:16px">
+    <h2 id="orcTitulo">Orçamento da viagem</h2>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr">
+      <div class="field"><label for="oMeta">Meta (R$)</label><input id="oMeta" inputmode="decimal" placeholder="ex.: 25.000,00" autocomplete="off"></div>
+      <div class="field"><label for="oReserva">Reserva para imprevistos (%)</label><input id="oReserva" inputmode="decimal" placeholder="ex.: 10" autocomplete="off"></div>
+    </div>
+    <span class="hint">A meta é o teto que você quer gastar. A reserva soma uma margem ao total para ver se ainda cabe na meta. Deixe em branco para não usar.</span>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn link" type="button" id="oCancelar">Cancelar</button>
+      <button class="btn" type="submit">Salvar</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="dlgCusto" aria-labelledby="custoTitulo">
   <form id="formCusto" style="display:flex;flex-direction:column;gap:16px">
     <h2 id="custoTitulo">Adicionar custo</h2>
@@ -117,12 +132,16 @@
         <select id="cTipo">
           <option>Passagem aérea</option><option>Hospedagem</option><option>Transporte</option><option>Passeio</option><option>Alimentação</option><option>Seguro-viagem</option><option>Visto e documentos</option><option>Câmbio e taxas</option><option>Compras</option><option>Outro</option>
         </select></div>
-      <div class="field"><label for="cValor">Valor (R$)</label><input id="cValor" required inputmode="decimal" placeholder="ex.: 1.250,00" autocomplete="off"></div>
       <div class="field"><label for="cData">Data do gasto</label><input id="cData" type="date"></div>
+      <div class="field"><label for="cMoeda">Moeda</label>
+        <select id="cMoeda"><option value="BRL" selected>R$ (BRL)</option><option>USD</option><option>EUR</option><option>GBP</option><option>PEN</option><option>ARS</option><option>CLP</option><option>COP</option><option>CAD</option><option>JPY</option></select></div>
+      <div class="field"><label for="cValor" id="cValorRot">Valor (R$)</label><input id="cValor" required inputmode="decimal" placeholder="ex.: 1.250,00" autocomplete="off"></div>
+      <div class="field hidden" id="cCotBox"><label for="cCot">Cotação (R$ por 1 <span id="cMoedaNome">USD</span>)</label><input id="cCot" inputmode="decimal" placeholder="ex.: 5,40" autocomplete="off"></div>
       <div class="field"><label for="cSituacao">Situação</label>
         <select id="cSituacao"><option>Previsto</option><option>Pago</option></select></div>
     </div>
     <div class="field"><label for="cObs">Observação</label><input id="cObs" placeholder="opcional: forma de pagamento, parcelas, reserva…" autocomplete="off"></div>
+    <span class="hint hidden" id="cConv" role="status"></span>
     <span class="hint hidden" id="cErro" role="alert"></span>
     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
       <button class="btn link" type="button" id="cCancelar">Cancelar</button>

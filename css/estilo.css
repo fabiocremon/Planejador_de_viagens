@@ -291,3 +291,10 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 .item-topo { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
 .item-acoes { display: flex; gap: 4px; margin-left: -10px; flex-wrap: wrap; }
 .item-acoes .btn { min-height: 30px; font-size: 13px; padding: 0 10px; }
+
+/* Barra de uso da meta de orçamento */
+.barra { height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; margin: 8px 0 6px; }
+.barra > i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.barra > i.quase { background: var(--aviso); }
+.barra > i.estourou { background: var(--alerta); }
+@media print { .barra { border: 1px solid var(--border); } }

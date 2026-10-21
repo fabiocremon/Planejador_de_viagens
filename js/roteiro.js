@@ -1,21 +1,12 @@
 // Roteiro dia a dia. Dados salvos só neste navegador.
 (function () {
   var viagem = App.ler('viagem', {});
-  var estado = App.ler('roteiro', { dias: 1, atividades: [] });
-  if (!Array.isArray(estado.custos)) estado.custos = [];
-  if (!Array.isArray(estado.lembretes)) estado.lembretes = [];
+  var estado = App.normalizarRoteiro(App.ler('roteiro', null));
   var diaAtual = 1;
 
   function $(id) { return document.getElementById(id); }
   // Salva o roteiro e mantém em dia a viagem salva que está aberta.
-  function salvar() {
-    App.gravar('roteiro', estado);
-    var id = App.ler('viagem_aberta', null);
-    if (!id) return;
-    var lista = App.ler('viagens', []);
-    lista.forEach(function (t) { if (t.id === id) t.roteiro = estado; });
-    App.gravar('viagens', lista);
-  }
+  function salvar() { App.salvarRoteiro(estado); }
 
   // Número de dias sugerido pelas datas da viagem (só na primeira vez).
   if (viagem.ida && viagem.volta && estado.atividades.length === 0 && estado.dias === 1) {
@@ -99,6 +90,83 @@
     });
   }
 
+  function totais() {
+    var t = { ativ: 0, lanc: 0, pago: 0, previsto: 0 };
+    estado.atividades.forEach(function (a) { t.ativ += a.custo || 0; });
+    estado.custos.forEach(function (c) { t.lanc += c.valor || 0; if (c.situacao === 'Pago') t.pago += c.valor || 0; else t.previsto += c.valor || 0; });
+    t.total = t.ativ + t.lanc;
+    return t;
+  }
+
+  // Orçamento: meta, barra de uso, saldo, por pessoa e por dia. Usado no card, no popup e no Resumo.
+  function desenharOrcamento(caixa, completo) {
+    caixa.textContent = '';
+    var meta = estado.orcamento.meta || 0, reserva = estado.orcamento.reserva || 0;
+    var t = totais();
+    var cab = criar('div', 'row first');
+    cab.style.paddingTop = '0';
+    cab.appendChild(criar('strong', '', 'Meta de orçamento'));
+    var bt = criar('button', 'btn link no-print', meta > 0 ? 'Alterar' : 'Definir meta');
+    bt.type = 'button';
+    bt.addEventListener('click', abrirOrcamento);
+    var dir = criar('span', '');
+    dir.style.cssText = 'display:flex;gap:6px;align-items:center';
+    if (meta > 0) dir.appendChild(criar('strong', '', App.brl(meta)));
+    dir.appendChild(bt);
+    cab.appendChild(dir);
+    caixa.appendChild(cab);
+    if (!(meta > 0)) {
+      caixa.appendChild(criar('span', 'hint', 'Defina um teto para acompanhar quanto já foi usado.'));
+      return;
+    }
+    var pct = t.total / meta * 100;
+    var barra = criar('div', 'barra');
+    barra.setAttribute('role', 'progressbar');
+    barra.setAttribute('aria-valuemin', '0'); barra.setAttribute('aria-valuemax', '100');
+    barra.setAttribute('aria-valuenow', String(Math.min(100, Math.round(pct))));
+    barra.setAttribute('aria-label', 'Uso da meta de orçamento');
+    var i = criar('i', pct > 100 ? 'estourou' : (pct >= 90 ? 'quase' : ''));
+    i.style.width = Math.min(100, pct) + '%';
+    barra.appendChild(i);
+    caixa.appendChild(barra);
+    var saldo = meta - t.total;
+    caixa.appendChild(criar('span', saldo < 0 ? 't-alerta' : (pct >= 90 ? 't-aviso' : 'muted'),
+      Math.round(pct) + '% da meta · ' + (saldo >= 0 ? 'sobram ' + App.brl(saldo) : 'acima da meta em ' + App.brl(-saldo))));
+    if (reserva > 0) {
+      var comRes = t.total * (1 + reserva / 100);
+      var r = criar('div', comRes > meta ? 't-aviso' : 'muted', 'Com reserva de ' + String(reserva).replace('.', ',') + '%: ' + App.brl(comRes) + (comRes > meta ? ' (passa da meta em ' + App.brl(comRes - meta) + ')' : ' (cabe na meta)'));
+      r.style.cssText = 'font-size:13px;margin-bottom:8px';
+      caixa.appendChild(r);
+    }
+    if (completo) {
+      var pess = parseInt(viagem.pessoas, 10);
+      var linhas = [];
+      if (pess > 0) linhas.push(['Por pessoa (' + pess + ')', t.total / pess]);
+      if (estado.dias > 0) linhas.push(['Por dia (' + estado.dias + ')', t.total / estado.dias]);
+      linhas.forEach(function (l) {
+        var row = criar('div', 'row');
+        row.appendChild(criar('span', 'muted', l[0]));
+        row.appendChild(criar('strong', '', App.brl(l[1])));
+        caixa.appendChild(row);
+      });
+    }
+  }
+
+  var dlgOrc = $('dlgOrc');
+  function abrirOrcamento() {
+    var m = estado.orcamento.meta, r = estado.orcamento.reserva;
+    $('oMeta').value = m > 0 ? m.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    $('oReserva').value = r > 0 ? String(r).replace('.', ',') : '';
+    dlgOrc.showModal();
+    $('oMeta').focus();
+  }
+  $('oCancelar').addEventListener('click', function () { dlgOrc.close(); });
+  $('formOrc').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    estado.orcamento = { meta: App.num($('oMeta').value), reserva: App.num($('oReserva').value) };
+    salvar(); dlgOrc.close(); desenhar();
+  });
+
   function desenharTotais() {
     var totalDia = 0, totalAtiv = 0, totalCustos = 0;
     estado.atividades.forEach(function (a) {
@@ -109,6 +177,7 @@
     $('totalDia').textContent = App.brl(totalDia);
     $('totalCustos').textContent = App.brl(totalCustos);
     $('totalViagem').textContent = App.brl(totalAtiv + totalCustos);
+    desenharOrcamento($('orcBloco'), false);
   }
 
   // ----- Custos lançados (+) -----
@@ -137,6 +206,10 @@
       resumo.appendChild(k);
     });
     caixa.appendChild(resumo);
+    var orc = criar('div', '');
+    orc.style.marginTop = '14px';
+    caixa.appendChild(orc);
+    desenharOrcamento(orc, true);
 
     if (!estado.custos.length && !comCusto.length) {
       caixa.appendChild(criar('p', 'muted', 'Nenhum custo ainda. Use o + para lançar.'));
@@ -165,6 +238,7 @@
         var tr = criar('tr', '');
         var o = criar('td', ''); o.style.whiteSpace = 'normal';
         o.appendChild(criar('strong', '', c.origem));
+        if (c.moeda && c.moeda !== 'BRL') { var mo = criar('div', 'muted', fmt2(c.valorMoeda) + ' ' + c.moeda + ' × R$ ' + String(c.cotacao).replace('.', ',')); mo.style.fontSize = '12px'; o.appendChild(mo); }
         if (c.obs) { var ob = criar('div', 'muted', c.obs); ob.style.fontSize = '12px'; o.appendChild(ob); }
         tr.appendChild(o);
         tr.appendChild(celula('td', c.data ? App.data(c.data) : '—'));
@@ -224,17 +298,37 @@
   $('verCustos').addEventListener('click', function () { desenharDetalhe(); dlgCustos.showModal(); });
   $('custosFechar').addEventListener('click', function () { dlgCustos.close(); });
 
+  function moedaSel() { return $('cMoeda').value; }
+  function atualizarMoeda() {
+    var m = moedaSel(), estrangeira = m !== 'BRL';
+    $('cCotBox').classList.toggle('hidden', !estrangeira);
+    $('cMoedaNome').textContent = m;
+    $('cValorRot').textContent = 'Valor (' + (estrangeira ? m : 'R$') + ')';
+    var v = App.num($('cValor').value), cot = App.num($('cCot').value);
+    var conv = $('cConv');
+    if (estrangeira && v > 0 && cot > 0) { conv.textContent = 'Equivale a ' + App.brl(Math.round(v * cot * 100) / 100) + ' (cotação informada por você).'; conv.classList.remove('hidden'); }
+    else conv.classList.add('hidden');
+  }
+  ['cMoeda', 'cValor', 'cCot'].forEach(function (id) { $(id).addEventListener('input', atualizarMoeda); });
+  $('cMoeda').addEventListener('change', atualizarMoeda);
+
+  function fmt2(n) { return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
   function abrirCusto(c) {
     custoEditando = c || null;
     $('custoTitulo').textContent = c ? 'Editar custo' : 'Adicionar custo';
     $('cEnviar').textContent = c ? 'Salvar alterações' : 'Adicionar';
     $('cOrigem').value = c ? c.origem : '';
     $('cTipo').value = c ? c.tipo : 'Passagem aérea';
-    $('cValor').value = c ? c.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    var est = c && c.moeda && c.moeda !== 'BRL';
+    $('cMoeda').value = est ? c.moeda : 'BRL';
+    $('cValor').value = c ? fmt2(est ? c.valorMoeda : c.valor) : '';
+    $('cCot').value = est ? String(c.cotacao).replace('.', ',') : '';
     $('cData').value = c ? (c.data || '') : '';
     $('cSituacao').value = c ? c.situacao : 'Previsto';
     $('cObs').value = c ? (c.obs || '') : '';
     $('cErro').classList.add('hidden');
+    atualizarMoeda();
     dlgCusto.showModal();
     $('cOrigem').focus();
   }
@@ -243,11 +337,14 @@
   $('formCusto').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var origem = $('cOrigem').value.trim();
-    var valor = App.num($('cValor').value);
+    var valorMoeda = App.num($('cValor').value);
+    var moeda = moedaSel(), cot = moeda === 'BRL' ? 1 : App.num($('cCot').value);
     var erro = $('cErro');
     if (!origem) { erro.textContent = 'Informe de onde vem o custo.'; erro.classList.remove('hidden'); return; }
-    if (!(valor > 0)) { erro.textContent = 'Informe um valor maior que zero.'; erro.classList.remove('hidden'); return; }
-    var dados = { origem: origem, tipo: $('cTipo').value, valor: valor, data: $('cData').value, situacao: $('cSituacao').value, obs: $('cObs').value.trim() };
+    if (!(valorMoeda > 0)) { erro.textContent = 'Informe um valor maior que zero.'; erro.classList.remove('hidden'); return; }
+    if (!(cot > 0)) { erro.textContent = 'Informe a cotação usada para converter em R$.'; erro.classList.remove('hidden'); return; }
+    var valor = Math.round(valorMoeda * cot * 100) / 100;
+    var dados = { origem: origem, tipo: $('cTipo').value, valor: valor, moeda: moeda, valorMoeda: valorMoeda, cotacao: cot, data: $('cData').value, situacao: $('cSituacao').value, obs: $('cObs').value.trim() };
     if (custoEditando) {
       Object.keys(dados).forEach(function (k) { custoEditando[k] = dados[k]; });
     } else {
@@ -483,13 +580,19 @@
       if (resumoCompleto) lista.forEach(function (c) {
         var d = criar('div', 'row');
         d.style.cssText = 'padding:3px 0 3px 16px;border-top:0';
-        d.appendChild(criar('span', 'muted', c.origem + ' · ' + c.situacao + (c.data ? ' · ' + App.data(c.data) : '') + (c.obs ? ' · ' + c.obs : '')));
+        d.appendChild(criar('span', 'muted', c.origem + ' · ' + c.situacao + (c.data ? ' · ' + App.data(c.data) : '') + (c.moeda && c.moeda !== 'BRL' ? ' · ' + fmt2(c.valorMoeda) + ' ' + c.moeda + ' × ' + String(c.cotacao).replace('.', ',') : '') + (c.obs ? ' · ' + c.obs : '')));
         d.appendChild(criar('span', 'muted', App.brl(c.valor)));
         cs.appendChild(d);
       });
     });
     if (!estado.custos.length) cs.appendChild(criar('p', 'muted', 'Nenhum custo lançado além dos custos das atividades.'));
     r.appendChild(cs);
+
+    var os = secao('Orçamento');
+    var ob2 = criar('div', '');
+    os.appendChild(ob2);
+    r.appendChild(os);
+    desenharOrcamento(ob2, true);
 
     // Lembretes
     var feitos = estado.lembretes.filter(function (l) { return l.feito; }).length;
