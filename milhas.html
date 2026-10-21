@@ -17,6 +17,12 @@
       <p class="sub">Compare os dois cenários lado a lado e decida.</p>
     </div>
 
+    <div class="tabs" role="tablist" aria-label="Ferramentas de milhas">
+      <button type="button" role="tab" id="tabComparar" data-aba="comparar" class="on" aria-selected="true">Comprar por milhas ou dinheiro?</button>
+      <button type="button" role="tab" id="tabMilheiro" data-aba="milheiro" aria-selected="false">Qual o valor do milheiro?</button>
+    </div>
+
+    <div id="abaComparar" role="tabpanel" aria-labelledby="tabComparar" style="display:flex;flex-direction:column;gap:20px">
     <div class="cols">
       <section class="card" aria-label="Dados da passagem" style="flex:1 1 320px;display:flex;flex-direction:column;gap:16px">
         <h2>Dados da passagem</h2>
@@ -79,6 +85,9 @@
       </div>
     </div>
 
+    </div>
+
+    <div id="abaMilheiro" role="tabpanel" aria-labelledby="tabMilheiro" class="hidden">
     <section class="card" aria-label="Calculadora do valor do milheiro" id="calcMilheiro" style="display:flex;flex-direction:column;gap:16px">
       <div><h2>Calculadora do valor do milheiro</h2><span class="muted">Quanto custou, de fato, cada 1.000 milhas, contando a bonificação da transferência.</span></div>
       <div class="cols" style="align-items:flex-start">
@@ -104,6 +113,7 @@
         </div>
       </div>
     </section>
+    </div>
   </main>
 </div>
 <script src="js/app.js"></script>

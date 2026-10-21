@@ -38,12 +38,28 @@
     var cus = document.getElementById('cus');
     cus.value = ultimo.final.toFixed(2).replace('.', ',');
     cus.dispatchEvent(new Event('input', { bubbles: true }));
-    var m = $('mpMsg'); m.textContent = 'Valor copiado para "Meu custo do milheiro" acima.'; m.classList.remove('hidden');
+    var m = $('mpMsg'); abrirAba('comparar');
+    var cs = document.getElementById('cus'); if (cs.scrollIntoView) cs.scrollIntoView({ block: 'center' });
   });
   $('mpLimpar').addEventListener('click', function () {
     campos.forEach(function (c) { $(c).value = ''; });
     atualizar();
   });
+
+  // Abas da página (Comprar por milhas ou dinheiro? / Qual o valor do milheiro?)
+  function abrirAba(nome) {
+    $('abaComparar').classList.toggle('hidden', nome !== 'comparar');
+    $('abaMilheiro').classList.toggle('hidden', nome !== 'milheiro');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-aba]'), function (b) {
+      var on = b.getAttribute('data-aba') === nome;
+      b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    App.gravar('milhas_aba', nome);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-aba]'), function (b) {
+    b.addEventListener('click', function () { abrirAba(b.getAttribute('data-aba')); });
+  });
+  abrirAba(App.ler('milhas_aba', 'comparar') === 'milheiro' ? 'milheiro' : 'comparar');
 
   var salvo = App.ler('milheiro_calc', null);
   if (Array.isArray(salvo)) campos.forEach(function (c, i) { $(c).value = salvo[i] || ''; });
