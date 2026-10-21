@@ -263,3 +263,10 @@ dialog .card { border: 0; padding: 0; background: transparent; }
   .card { break-inside: avoid; border-color: #CCCCCC; }
   .resumo-dia { break-inside: avoid; }
 }
+
+/* Avião antes do título: só aparece na impressão / PDF */
+.aviao-impressao { display: none; }
+@media print {
+  .cab-roteiro { display: flex; align-items: center; gap: 12px; }
+  .aviao-impressao { display: block; flex: none; color: var(--accent-text); }
+}
