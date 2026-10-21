@@ -38,7 +38,7 @@ a { color: var(--accent-text); }
 
 .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 17px; padding: 0 8px; }
 .mark { width: 36px; height: 36px; border-radius: 10px; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; }
-.nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav { display: flex; flex-direction: column; gap: 4px; }
 .nav a { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500; }
 .nav a:hover { color: var(--fg); background: var(--soft); }
 .nav a.on { background: var(--soft); color: var(--accent-text); font-weight: 600; }
@@ -306,3 +306,19 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 .prazo-meio { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-width: 0; }
 .prazo-item .btn { min-height: 28px; font-size: 12px; padding: 0 8px; }
 @media (max-width: 640px) { .prazo-item { grid-template-columns: 1fr auto; } .prazo-data { grid-column: 1 / -1; } }
+
+/* Menu lateral: tema logo abaixo do menu, separado por uma linha; recolher/expandir */
+.theme-box { border-top: 1px solid var(--border); padding-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.side { align-self: flex-start; min-height: 100vh; }
+.brand .nome { flex: 1; min-width: 0; }
+.recolher { margin-left: auto; width: 32px; height: 32px; flex: none; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--muted); font-family: inherit; font-size: 18px; line-height: 1; cursor: pointer; }
+.recolher:hover { color: var(--fg); background: var(--soft); }
+.tema-mini { display: none; align-self: center; width: 40px; height: 40px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--muted); cursor: pointer; align-items: center; justify-content: center; }
+.tema-mini:hover { color: var(--fg); background: var(--soft); }
+.app.recolhido .side { flex-basis: 72px; padding: 24px 10px; }
+.app.recolhido .brand { flex-direction: column; padding: 0; gap: 10px; }
+.app.recolhido .brand .nome, .app.recolhido .nav .rot, .app.recolhido .theme { display: none; }
+.app.recolhido .recolher { margin-left: 0; }
+.app.recolhido .nav a { justify-content: center; padding: 0; }
+.app.recolhido .tema-mini { display: inline-flex; }
+@media (max-width: 640px) { .recolher { display: none; } .app.recolhido .side { flex-basis: 100%; padding: 24px 16px; } .app.recolhido .brand { flex-direction: row; } .app.recolhido .brand .nome, .app.recolhido .nav .rot { display: initial; } .app.recolhido .theme { display: flex; } .app.recolhido .tema-mini { display: none; } .app.recolhido .nav a { justify-content: flex-start; padding: 0 12px; } }

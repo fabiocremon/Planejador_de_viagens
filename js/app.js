@@ -124,16 +124,42 @@
     if (!alvo) return;
     var atual = document.body.getAttribute('data-pagina');
     var links = PAGINAS.map(function (p) {
-      return '<a href="' + p[1] + '"' + (p[0] === atual ? ' class="on" aria-current="page"' : '') + '>' + svg(ICONES[p[3]], 20) + p[2] + '</a>';
+      return '<a href="' + p[1] + '" title="' + p[2] + '"' + (p[0] === atual ? ' class="on" aria-current="page"' : '') + '>' + svg(ICONES[p[3]], 20) + '<span class="rot">' + p[2] + '</span></a>';
     }).join('');
     alvo.innerHTML =
       '<div class="brand"><span class="mark">' +
       svg('<path d="M17.8 19.2 16 11l3.5-3.5a2.1 2.1 0 0 0-3-3L13 8 4.8 6.2 3.5 7.5l6.7 3.7-3 3-2.7-.5L3 15l4 2 2 4 1.3-1.5-.5-2.7 3-3 3.7 6.7z"/>', 20) +
-      '</span>Planejador de viagens</div>' +
+      '</span><span class="nome">Planejador de viagens</span>' +
+      '<button type="button" class="recolher" id="recolherMenu" aria-label="Recolher menu" aria-expanded="true" title="Recolher menu">&laquo;</button></div>' +
       '<nav class="nav" aria-label="Principal">' + links + '</nav>' +
+      '<div class="theme-box">' +
       '<div class="theme" role="group" aria-label="Tema">' +
       '<button type="button" data-tema="claro">Claro</button>' +
-      '<button type="button" data-tema="escuro">Escuro</button></div>';
+      '<button type="button" data-tema="escuro">Escuro</button></div>' +
+      '<button type="button" class="tema-mini" id="temaMini" aria-label="Alternar tema claro e escuro" title="Alternar tema">' + svg('<circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>', 20) + '</button></div>';
+
+    // Recolher / expandir o menu lateral (lembra a escolha neste navegador).
+    var app = alvo.parentNode;
+    var bt = document.getElementById('recolherMenu');
+    function aplicarMenu(rec) {
+      if (app && app.classList) app.classList.toggle('recolhido', rec);
+      bt.innerHTML = rec ? '&raquo;' : '&laquo;';
+      bt.setAttribute('aria-expanded', rec ? 'false' : 'true');
+      var t = rec ? 'Expandir menu' : 'Recolher menu';
+      bt.setAttribute('aria-label', t); bt.title = t;
+    }
+    aplicarMenu(App.ler('menu_recolhido', false) === true);
+    bt.addEventListener('click', function () {
+      var rec = !(app.classList.contains('recolhido'));
+      App.gravar('menu_recolhido', rec);
+      aplicarMenu(rec);
+    });
+    document.getElementById('temaMini').addEventListener('click', function () {
+      var novo = temaAtual() === 'escuro' ? 'claro' : 'escuro';
+      raiz.setAttribute('data-tema', novo);
+      App.gravar('tema', novo);
+      marcar();
+    });
 
     var botoes = alvo.querySelectorAll('.theme button');
     function marcar() {
