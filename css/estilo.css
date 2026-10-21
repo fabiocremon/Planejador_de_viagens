@@ -322,3 +322,19 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 .app.recolhido .nav a { justify-content: center; padding: 0; }
 .app.recolhido .tema-mini { display: inline-flex; }
 @media (max-width: 640px) { .recolher { display: none; } .app.recolhido .side { flex-basis: 100%; padding: 24px 16px; } .app.recolhido .brand { flex-direction: row; } .app.recolhido .brand .nome, .app.recolhido .nav .rot { display: initial; } .app.recolhido .theme { display: flex; } .app.recolhido .tema-mini { display: none; } .app.recolhido .nav a { justify-content: flex-start; padding: 0 12px; } }
+
+/* Guia de dicas */
+.dica-aba { display: flex; flex-direction: column; gap: 20px; }
+.dica-grupo h3 { margin: 0 0 10px; font-size: 14px; color: var(--muted); font-weight: 600; }
+.dica-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.dica-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--fg); text-decoration: none; min-height: 64px; transition: border-color .15s, transform .15s; }
+.dica-card:hover, .dica-card:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+.dica-mono { flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--cor, var(--accent)); color: var(--on-accent); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+.dica-txt { display: flex; flex-direction: column; min-width: 0; font-size: 13px; }
+.dica-txt strong { font-size: 14px; overflow-wrap: anywhere; }
+.dica-obs { font-size: 11px; color: var(--aviso); }
+.dica-seta { margin-left: auto; color: var(--muted); }
+.dica-fonte { margin: 8px 0 0; font-size: 12px; }
+.dica-item { padding: 10px 0; border-top: 1px solid var(--border); }
+.dica-item p { margin: 4px 0 0; }
+.dica-item + .dica-grade, .card > .dica-grade { margin-top: 14px; }
