@@ -44,6 +44,11 @@
   function desenharAbas() {
     var abas = $('abas');
     abas.textContent = '';
+    var bres = criar('button', diaAtual === 0 ? 'on' : '', 'Resumo');
+    bres.type = 'button';
+    bres.setAttribute('aria-pressed', diaAtual === 0 ? 'true' : 'false');
+    bres.addEventListener('click', function () { diaAtual = 0; desenhar(); });
+    abas.appendChild(bres);
     for (var n = 1; n <= estado.dias; n++) {
       (function (n) {
         var b = criar('button', n === diaAtual ? 'on' : '', 'Dia ' + n);
@@ -366,10 +371,151 @@
     salvar(); dlgSug.close(); desenhar();
   });
 
+  // ----- Resumo da viagem (aba antes do Dia 1) -----
+  var resumoCompleto = false;
+
+  function secao(titulo, extra) {
+    var sec = criar('section', 'card resumo-sec');
+    var cab = criar('div', 'row first');
+    cab.style.paddingTop = '0';
+    cab.appendChild(criar('h2', '', titulo));
+    if (extra) cab.appendChild(extra);
+    sec.appendChild(cab);
+    return sec;
+  }
+
+  function desenharResumo() {
+    var r = $('resumo');
+    r.textContent = '';
+
+    // Dados da viagem + ações
+    var acoes = criar('div', 'no-print');
+    acoes.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+    var alt = criar('button', 'btn sec', resumoCompleto ? 'Mostrar resumido' : 'Ver todos os detalhes');
+    alt.type = 'button';
+    alt.addEventListener('click', function () { resumoCompleto = !resumoCompleto; desenharResumo(); });
+    var imp = criar('button', 'btn', 'Imprimir / PDF');
+    imp.type = 'button';
+    imp.title = 'Na janela de impressão, escolha "Salvar como PDF"';
+    imp.addEventListener('click', function () { window.print(); });
+    acoes.appendChild(alt); acoes.appendChild(imp);
+    var dados = secao('Dados da viagem', acoes);
+    var grade = criar('div', 'resumo-dados');
+    var itens = [
+      ['Destino', viagem.destino || '—'],
+      ['Saída de', viagem.saida || '—'],
+      ['Ida', viagem.ida ? App.data(viagem.ida) : '—'],
+      ['Volta', viagem.volta ? App.data(viagem.volta) : '—'],
+      ['Pessoas', viagem.pessoas || '—'],
+      ['Dias no roteiro', String(estado.dias)]
+    ];
+    itens.forEach(function (x) {
+      var k = criar('div', 'kpi');
+      k.appendChild(criar('span', 'muted', x[0]));
+      k.appendChild(criar('strong', '', x[1]));
+      grade.appendChild(k);
+    });
+    dados.appendChild(grade);
+    r.appendChild(dados);
+
+    // Dia a dia
+    var dd = secao('Dia a dia');
+    for (var n = 1; n <= estado.dias; n++) {
+      (function (n) {
+        var atvs = estado.atividades.filter(function (a) { return a.dia === n; })
+          .sort(function (a, b) { return (a.hora || '99:99').localeCompare(b.hora || '99:99'); });
+        var bloco = criar('div', 'resumo-dia');
+        var cab = criar('div', 'resumo-dia-cab');
+        var tit = criar('strong', '', rotuloDia(n));
+        cab.appendChild(tit);
+        var totalDia = atvs.reduce(function (t, a) { return t + (a.custo || 0); }, 0);
+        cab.appendChild(criar('span', 'muted', atvs.length + (atvs.length === 1 ? ' atividade' : ' atividades') + (totalDia > 0 ? ' · ' + App.brl(totalDia) : '')));
+        var ir = criar('button', 'btn link no-print', 'Abrir dia');
+        ir.type = 'button';
+        ir.setAttribute('aria-label', 'Abrir o dia ' + n);
+        ir.addEventListener('click', function () { diaAtual = n; desenhar(); });
+        cab.appendChild(ir);
+        bloco.appendChild(cab);
+        if (!atvs.length) bloco.appendChild(criar('div', 'muted', 'Sem atividades.'));
+        atvs.forEach(function (a) {
+          var l = criar('div', 'resumo-atv');
+          l.appendChild(criar('span', 'resumo-hora', a.hora || '—'));
+          var corpo = criar('div', 'resumo-corpo');
+          var linha = criar('div', '');
+          linha.appendChild(criar('strong', '', a.titulo));
+          linha.appendChild(criar('span', 'muted', ' · ' + a.tipo));
+          corpo.appendChild(linha);
+          if (resumoCompleto) {
+            if (a.detalhe) corpo.appendChild(criar('div', 'muted', a.detalhe));
+            if (a.custo > 0) corpo.appendChild(criar('div', 'muted', App.brl(a.custo)));
+          }
+          l.appendChild(corpo);
+          bloco.appendChild(l);
+        });
+        dd.appendChild(bloco);
+      })(n);
+    }
+    r.appendChild(dd);
+
+    // Custos
+    var cs = secao('Custos');
+    var totalLanc = 0, pago = 0, previsto = 0, totalAtiv = 0;
+    estado.custos.forEach(function (c) { totalLanc += c.valor; if (c.situacao === 'Pago') pago += c.valor; else previsto += c.valor; });
+    estado.atividades.forEach(function (a) { totalAtiv += a.custo || 0; });
+    var kg = criar('div', 'resumo-dados');
+    [['Total da viagem', totalLanc + totalAtiv], ['Pago', pago], ['Previsto', previsto], ['Atividades do roteiro', totalAtiv]].forEach(function (x) {
+      var k = criar('div', 'kpi');
+      k.appendChild(criar('span', 'muted', x[0]));
+      k.appendChild(criar('strong', '', App.brl(x[1])));
+      kg.appendChild(k);
+    });
+    cs.appendChild(kg);
+    var porTipo = {};
+    estado.custos.forEach(function (c) { (porTipo[c.tipo] = porTipo[c.tipo] || []).push(c); });
+    Object.keys(porTipo).sort(function (a, b) {
+      return porTipo[b].reduce(function (t, c) { return t + c.valor; }, 0) - porTipo[a].reduce(function (t, c) { return t + c.valor; }, 0);
+    }).forEach(function (tipo) {
+      var lista = porTipo[tipo];
+      var linha = criar('div', 'row');
+      linha.appendChild(criar('span', '', tipo));
+      linha.appendChild(criar('strong', '', App.brl(lista.reduce(function (t, c) { return t + c.valor; }, 0))));
+      cs.appendChild(linha);
+      if (resumoCompleto) lista.forEach(function (c) {
+        var d = criar('div', 'row');
+        d.style.cssText = 'padding:3px 0 3px 16px;border-top:0';
+        d.appendChild(criar('span', 'muted', c.origem + ' · ' + c.situacao + (c.data ? ' · ' + App.data(c.data) : '') + (c.obs ? ' · ' + c.obs : '')));
+        d.appendChild(criar('span', 'muted', App.brl(c.valor)));
+        cs.appendChild(d);
+      });
+    });
+    if (!estado.custos.length) cs.appendChild(criar('p', 'muted', 'Nenhum custo lançado além dos custos das atividades.'));
+    r.appendChild(cs);
+
+    // Lembretes
+    var feitos = estado.lembretes.filter(function (l) { return l.feito; }).length;
+    var ls = secao('Lembretes');
+    ls.appendChild(criar('span', 'hint', estado.lembretes.length ? feitos + ' de ' + estado.lembretes.length + (feitos === 1 ? ' feito' : ' feitos') : ''));
+    estado.lembretes.slice().sort(function (a, b) {
+      if (!!a.feito !== !!b.feito) return a.feito ? 1 : -1;
+      return (a.data || '9999').localeCompare(b.data || '9999');
+    }).forEach(function (l) {
+      var linha = criar('div', 'resumo-lemb' + (l.feito ? ' feito' : ''));
+      linha.appendChild(criar('span', 'resumo-caixa', l.feito ? '☑' : '☐'));
+      linha.appendChild(criar('span', '', l.texto + (l.data ? ' (prazo ' + App.data(l.data) + ')' : '')));
+      ls.appendChild(linha);
+    });
+    if (!estado.lembretes.length) ls.appendChild(criar('p', 'muted', 'Nenhum lembrete.'));
+    r.appendChild(ls);
+  }
+
   function desenhar() {
+    var resumo = diaAtual === 0;
+    $('resumo').classList.toggle('hidden', !resumo);
+    $('telaDia').classList.toggle('hidden', resumo);
+    desenharAbas();
+    if (resumo) { desenharResumo(); return; }
     $('tituloDia').textContent = rotuloDia(diaAtual);
     $('removerDia').classList.toggle('hidden', estado.dias <= 1);
-    desenharAbas();
     desenharLista();
     desenharTotais();
     desenharCustos();
