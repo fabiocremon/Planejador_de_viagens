@@ -110,58 +110,114 @@
   var dlgCusto = $('dlgCusto');
   var custoEditando = null;
 
-  function desenharCustos() {
-    var caixa = $('custosLista');
+  var dlgCustos = $('dlgCustos');
+
+  function celula(tag, texto, classe) { var c = criar(tag, classe || '', texto); return c; }
+
+  // Janela com todo o custo da viagem: resumo, custos lançados por tipo e custos das atividades.
+  function desenharDetalhe() {
+    var caixa = $('custosDetalhe');
     caixa.textContent = '';
-    $('semCustos').classList.toggle('hidden', estado.custos.length > 0);
-    var ordenados = estado.custos.slice().sort(function (a, b) { return (b.data || '').localeCompare(a.data || ''); });
-    ordenados.forEach(function (c, i) {
-      var linha = criar('div', 'custo-item');
-      var topo = criar('div', 'custo-topo');
-      topo.appendChild(criar('strong', '', c.origem));
-      topo.appendChild(criar('strong', '', App.brl(c.valor)));
-      linha.appendChild(topo);
-      var meta = criar('div', 'custo-meta');
-      meta.appendChild(criar('span', 'chip', c.tipo));
-      meta.appendChild(criar('span', 'muted', c.situacao + (c.data ? ' · ' + App.data(c.data) : '')));
-      linha.appendChild(meta);
-      if (c.obs) linha.appendChild(criar('div', 'muted', c.obs));
-      var acoes = criar('div', 'custo-acoes');
-      var ed = criar('button', 'btn link', 'Editar');
-      ed.type = 'button';
-      ed.setAttribute('aria-label', 'Editar custo ' + c.origem);
-      ed.addEventListener('click', function () { abrirCusto(c); });
-      var rem = criar('button', 'btn link', 'Remover');
-      rem.type = 'button';
-      rem.setAttribute('aria-label', 'Remover custo ' + c.origem);
-      rem.addEventListener('click', function () {
-        if (!confirm('Remover o custo "' + c.origem + '" (' + App.brl(c.valor) + ')?')) return;
-        estado.custos = estado.custos.filter(function (x) { return x.id !== c.id; });
-        salvar(); desenhar();
+    var totalLanc = 0, pago = 0, previsto = 0, totalAtiv = 0;
+    estado.custos.forEach(function (c) { totalLanc += c.valor; if (c.situacao === 'Pago') pago += c.valor; else previsto += c.valor; });
+    var comCusto = estado.atividades.filter(function (a) { return a.custo > 0; });
+    comCusto.forEach(function (a) { totalAtiv += a.custo; });
+
+    // Resumo
+    var resumo = criar('div', 'custos-resumo');
+    [['Total da viagem', totalLanc + totalAtiv, true], ['Pago', pago], ['Previsto', previsto], ['Atividades do roteiro', totalAtiv]].forEach(function (x) {
+      var k = criar('div', 'kpi' + (x[2] ? ' destaque' : ''));
+      k.appendChild(criar('span', 'muted', x[0]));
+      k.appendChild(criar('strong', '', App.brl(x[1])));
+      resumo.appendChild(k);
+    });
+    caixa.appendChild(resumo);
+
+    if (!estado.custos.length && !comCusto.length) {
+      caixa.appendChild(criar('p', 'muted', 'Nenhum custo ainda. Use o + para lançar.'));
+      return;
+    }
+
+    // Custos lançados, agrupados por tipo (maior subtotal primeiro)
+    var grupos = {};
+    estado.custos.forEach(function (c) { (grupos[c.tipo] = grupos[c.tipo] || []).push(c); });
+    function soma(l) { return l.reduce(function (t, c) { return t + c.valor; }, 0); }
+    Object.keys(grupos).sort(function (a, b) { return soma(grupos[b]) - soma(grupos[a]); }).forEach(function (tipo) {
+      var itens = grupos[tipo].sort(function (a, b) { return (a.data || '9999').localeCompare(b.data || '9999'); });
+      var sec = criar('section', 'custos-grupo');
+      var cab = criar('div', 'custos-grupo-cab');
+      cab.appendChild(criar('strong', '', tipo));
+      cab.appendChild(criar('span', 'muted', itens.length + (itens.length === 1 ? ' lançamento' : ' lançamentos')));
+      cab.appendChild(criar('strong', 'custos-sub', App.brl(soma(itens))));
+      sec.appendChild(cab);
+      var rolagem = criar('div', 'tabela-rolagem');
+      var tab = criar('table', 'tab lanc');
+      var th = criar('thead', ''); var trh = criar('tr', '');
+      ['Origem', 'Data', 'Situação', 'Valor', ''].forEach(function (t) { var h = criar('th', '', t); if (!t) h.setAttribute('aria-label', 'Ações'); trh.appendChild(h); });
+      th.appendChild(trh); tab.appendChild(th);
+      var tb = criar('tbody', '');
+      itens.forEach(function (c) {
+        var tr = criar('tr', '');
+        var o = criar('td', ''); o.style.whiteSpace = 'normal';
+        o.appendChild(criar('strong', '', c.origem));
+        if (c.obs) { var ob = criar('div', 'muted', c.obs); ob.style.fontSize = '12px'; o.appendChild(ob); }
+        tr.appendChild(o);
+        tr.appendChild(celula('td', c.data ? App.data(c.data) : '—'));
+        var st = criar('td', ''); st.appendChild(criar('span', c.situacao === 'Pago' ? 'chip' : 'chip previsto', c.situacao)); tr.appendChild(st);
+        tr.appendChild(celula('td', App.brl(c.valor)));
+        var ac = criar('td', '');
+        var ed = criar('button', 'btn link', 'Editar'); ed.type = 'button';
+        ed.setAttribute('aria-label', 'Editar custo ' + c.origem);
+        ed.addEventListener('click', function () { abrirCusto(c); });
+        var rem = criar('button', 'btn link', 'Remover'); rem.type = 'button';
+        rem.setAttribute('aria-label', 'Remover custo ' + c.origem);
+        rem.addEventListener('click', function () {
+          if (!confirm('Remover o custo "' + c.origem + '" (' + App.brl(c.valor) + ')?')) return;
+          estado.custos = estado.custos.filter(function (x) { return x.id !== c.id; });
+          salvar(); desenhar();
+        });
+        ac.appendChild(ed); ac.appendChild(rem); tr.appendChild(ac);
+        tb.appendChild(tr);
       });
-      acoes.appendChild(ed); acoes.appendChild(rem);
-      linha.appendChild(acoes);
-      caixa.appendChild(linha);
+      tab.appendChild(tb); rolagem.appendChild(tab); sec.appendChild(rolagem);
+      caixa.appendChild(sec);
     });
 
-    // Resumo por tipo e por situação
-    var porTipo = {}, pago = 0, previsto = 0;
-    estado.custos.forEach(function (c) {
-      porTipo[c.tipo] = (porTipo[c.tipo] || 0) + c.valor;
-      if (c.situacao === 'Pago') pago += c.valor; else previsto += c.valor;
-    });
-    var box = $('custosTipo');
-    box.textContent = '';
-    Object.keys(porTipo).sort(function (a, b) { return porTipo[b] - porTipo[a]; }).forEach(function (t) {
-      var r = criar('div', 'row');
-      r.appendChild(criar('span', 'muted', t));
-      r.appendChild(criar('strong', '', App.brl(porTipo[t])));
-      box.appendChild(r);
-    });
-    var rp = criar('div', 'row'); rp.appendChild(criar('span', 'muted', 'Pago')); rp.appendChild(criar('strong', '', App.brl(pago))); box.appendChild(rp);
-    var rv = criar('div', 'row'); rv.appendChild(criar('span', 'muted', 'Previsto')); rv.appendChild(criar('strong', '', App.brl(previsto))); box.appendChild(rv);
-    $('custosTipoBox').classList.toggle('hidden', estado.custos.length === 0);
+    // Custos informados nas atividades do roteiro (editados na lista de atividades)
+    if (comCusto.length) {
+      var sec = criar('section', 'custos-grupo');
+      var cab = criar('div', 'custos-grupo-cab');
+      cab.appendChild(criar('strong', '', 'Atividades do roteiro'));
+      cab.appendChild(criar('span', 'muted', comCusto.length + (comCusto.length === 1 ? ' atividade' : ' atividades')));
+      cab.appendChild(criar('strong', 'custos-sub', App.brl(totalAtiv)));
+      sec.appendChild(cab);
+      var rol = criar('div', 'tabela-rolagem');
+      var tab = criar('table', 'tab ativ');
+      var th = criar('thead', ''); var trh = criar('tr', '');
+      ['Atividade', 'Dia', 'Tipo', 'Valor'].forEach(function (t) { trh.appendChild(criar('th', '', t)); });
+      th.appendChild(trh); tab.appendChild(th);
+      var tb = criar('tbody', '');
+      comCusto.slice().sort(function (a, b) { return a.dia - b.dia || (a.hora || '').localeCompare(b.hora || ''); }).forEach(function (a) {
+        var tr = criar('tr', '');
+        var o = criar('td', ''); o.style.whiteSpace = 'normal'; o.appendChild(criar('strong', '', a.titulo)); tr.appendChild(o);
+        tr.appendChild(celula('td', rotuloDia(a.dia)));
+        tr.appendChild(celula('td', a.tipo));
+        tr.appendChild(celula('td', App.brl(a.custo)));
+        tb.appendChild(tr);
+      });
+      tab.appendChild(tb); rol.appendChild(tab); sec.appendChild(rol);
+      caixa.appendChild(sec);
+    }
   }
+
+  function desenharCustos() {
+    var vazio = !estado.custos.length && !estado.atividades.some(function (a) { return a.custo > 0; });
+    $('semCustos').classList.toggle('hidden', !vazio);
+    $('verCustos').disabled = vazio;
+    if (dlgCustos.open) desenharDetalhe();
+  }
+  $('verCustos').addEventListener('click', function () { desenharDetalhe(); dlgCustos.showModal(); });
+  $('custosFechar').addEventListener('click', function () { dlgCustos.close(); });
 
   function abrirCusto(c) {
     custoEditando = c || null;

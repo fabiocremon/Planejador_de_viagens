@@ -214,3 +214,25 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 .lemb-item .muted, .lemb-item .custo-acoes { margin-left: 28px; }
 .lemb-item .custo-acoes { margin-left: 20px; }
 #sugLista .lemb-check { font-size: 14px; }
+
+/* Janela "Custos da viagem" */
+#dlgCustos { width: min(780px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+.custos-resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.custos-resumo .kpi { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; font-size: 13px; }
+.custos-resumo .kpi strong { font-size: 17px; }
+.custos-resumo .kpi.destaque { border-color: var(--accent); }
+.custos-resumo .kpi.destaque strong { color: var(--accent-text); }
+.custos-grupo { margin-top: 18px; }
+.custos-grupo-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding-bottom: 4px; }
+.custos-grupo-cab .custos-sub { margin-left: auto; font-size: 15px; }
+#dlgCustos table.tab th, #dlgCustos table.tab td { font-size: 13px; padding: 7px 8px; }
+#dlgCustos table.tab td:last-child { white-space: nowrap; }
+#dlgCustos table.tab .btn.link { min-height: 28px; padding: 0 6px; font-size: 12px; }
+.chip.previsto { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+#dlgCustos table.tab { table-layout: fixed; min-width: 560px; }
+#dlgCustos table.lanc th:nth-child(2) { width: 96px; }
+#dlgCustos table.lanc th:nth-child(3) { width: 96px; }
+#dlgCustos table.lanc th:nth-child(4) { width: 110px; }
+#dlgCustos table.lanc th:nth-child(5) { width: 130px; }
+#dlgCustos table.ativ th:nth-child(n+2) { width: 110px; }
+#dlgCustos table.tab td { overflow-wrap: anywhere; }

@@ -45,17 +45,15 @@
         <section class="card" aria-label="Custos">
           <div class="row first" style="padding-top:0">
             <h2>Custos</h2>
+            <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn sec" type="button" id="verCustos" aria-label="Ver todos os custos da viagem" title="Ver todos os custos da viagem" style="min-width:40px;padding:0 11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
             <button class="btn" type="button" id="novoCusto" aria-label="Adicionar custo" title="Adicionar custo" style="min-width:40px;padding:0 14px;font-size:20px;line-height:1">+</button>
+            </div>
           </div>
           <div class="row" style="margin-top:6px"><span class="muted">Total do dia</span><strong id="totalDia">R$ 0,00</strong></div>
           <div class="row"><span class="muted">Custos lançados</span><strong id="totalCustos">R$ 0,00</strong></div>
           <div class="row"><span class="muted">Total da viagem</span><strong id="totalViagem" style="color:var(--accent-text)">R$ 0,00</strong></div>
-          <div id="custosLista" style="margin-top:10px"></div>
           <p class="muted hidden" id="semCustos" style="margin:10px 0 0">Nenhum custo lançado. Use o + para incluir.</p>
-          <details style="margin-top:10px" id="custosTipoBox" class="hidden">
-            <summary>Por tipo</summary>
-            <div id="custosTipo"></div>
-          </details>
           <p class="hint" style="margin:8px 0 0">Total da viagem = custos das atividades + custos lançados aqui. Confirme preços na fonte antes de reservar.</p>
         </section>
         <section class="card" aria-label="Lembretes">
@@ -95,6 +93,15 @@
       <button class="btn" type="submit">Incluir marcados</button>
     </div>
   </form>
+</dialog>
+<dialog id="dlgCustos" aria-labelledby="custosDetTitulo">
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="row first" style="padding-top:0">
+      <h2 id="custosDetTitulo">Custos da viagem</h2>
+      <button class="btn sec" type="button" id="custosFechar">Fechar</button>
+    </div>
+    <div id="custosDetalhe"></div>
+  </div>
 </dialog>
 <dialog id="dlgCusto" aria-labelledby="custoTitulo">
   <form id="formCusto" style="display:flex;flex-direction:column;gap:16px">
