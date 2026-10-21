@@ -63,6 +63,11 @@
       estado.dias += 1; diaAtual = estado.dias; salvar(); desenhar();
     });
     abas.appendChild(mais);
+    var bres2 = criar('button', diaAtual === -1 ? 'on' : '', 'Reservas e documentos');
+    bres2.type = 'button';
+    bres2.setAttribute('aria-pressed', diaAtual === -1 ? 'true' : 'false');
+    bres2.addEventListener('click', function () { diaAtual = -1; desenhar(); });
+    abas.appendChild(bres2);
   }
 
   function urlMapa(a) {
@@ -846,11 +851,13 @@
   }
 
   function desenhar() {
-    var resumo = diaAtual === 0;
+    var resumo = diaAtual === 0, reservas = diaAtual === -1;
     $('resumo').classList.toggle('hidden', !resumo);
-    $('telaDia').classList.toggle('hidden', resumo);
+    $('telaReservas').classList.toggle('hidden', !reservas);
+    $('telaDia').classList.toggle('hidden', resumo || reservas);
     desenharAbas();
     if (resumo) { desenharResumo(); return; }
+    if (reservas) { painelReservas.desenhar(); return; }
     $('tituloDia').textContent = rotuloDia(diaAtual);
     $('removerDia').classList.toggle('hidden', estado.dias <= 1);
     $('moverEsq').disabled = diaAtual <= 1;
@@ -894,5 +901,8 @@
     $('ativTitulo').focus();
   });
 
+  // Aba Reservas e documentos (mesmo estado do roteiro, para os salvamentos não se sobrescreverem).
+  var painelReservas = window.iniciarReservas(estado, salvar);
+  if (location.hash === '#reservas') diaAtual = -1;
   desenhar();
 })();

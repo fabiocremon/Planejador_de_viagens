@@ -177,15 +177,15 @@
       var destino = t.dados.destino;
       function add(data, texto, pagina, forte) { if (data) itens.push({ data: data, texto: texto, viagem: t, destino: destino, pagina: pagina, forte: !!forte }); }
       (r.lembretes || []).forEach(function (l) { if (!l.feito) add(l.data, 'Lembrete: ' + l.texto, 'roteiro.html'); });
-      (r.reservas || []).forEach(function (x) { add(x.cancelamento, 'Cancelamento grátis: ' + x.nome, 'reservas.html'); });
+      (r.reservas || []).forEach(function (x) { add(x.cancelamento, 'Cancelamento grátis: ' + x.nome, 'roteiro.html#reservas'); });
       (r.custos || []).forEach(function (c) { if (c.situacao === 'Previsto') add(c.data, 'Pagar: ' + c.origem + ' (' + App.brl(c.valor) + ')', 'roteiro.html'); });
       var ref = t.dados.volta || t.dados.ida || '';
       (r.documentos || []).forEach(function (d) {
         if (!d.validade) return;
         var antes = ref && d.validade < ref;
         var perto = App.diasAte(d.validade) <= 120;
-        if (antes) add(d.validade, 'Vence antes da volta: ' + d.tipo + ' de ' + d.pessoa, 'reservas.html', true);
-        else if (perto) add(d.validade, 'Validade: ' + d.tipo + ' de ' + d.pessoa, 'reservas.html');
+        if (antes) add(d.validade, 'Vence antes da volta: ' + d.tipo + ' de ' + d.pessoa, 'roteiro.html#reservas', true);
+        else if (perto) add(d.validade, 'Validade: ' + d.tipo + ' de ' + d.pessoa, 'roteiro.html#reservas');
       });
     });
     Object.keys(saldos || {}).forEach(function (nome) {

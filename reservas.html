@@ -4,89 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reservas e documentos — Planejador de viagens</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/estilo.css">
+<meta http-equiv="refresh" content="0; url=roteiro.html#reservas">
 </head>
-<body data-pagina="reservas">
-<div class="app">
-  <aside class="side" id="lateral"></aside>
-  <main class="main">
-    <div>
-      <h1 id="titulo">Reservas e documentos</h1>
-      <p class="sub" id="subtitulo">Reservas, prazos de cancelamento e validade dos documentos da viagem.</p>
-    </div>
-
-    <p class="card muted hidden" id="semViagem" style="margin:0">Nenhuma viagem aberta. Abra uma viagem no <a href="index.html">Painel</a> para cadastrar reservas e documentos.</p>
-
-    <div id="conteudo" class="cols">
-      <section class="card" aria-label="Reservas" style="flex:1 1 420px;min-width:0">
-        <div class="row first" style="padding-top:0">
-          <div><h2>Reservas</h2><span class="muted" id="resResumo"></span></div>
-          <button class="btn" type="button" id="novaReserva" aria-label="Adicionar reserva" title="Adicionar reserva" style="min-width:40px;padding:0 14px;font-size:20px;line-height:1">+</button>
-        </div>
-        <div class="lista-itens" id="reservas" style="margin-top:8px"></div>
-        <p class="muted" id="semReservas" style="margin:8px 0 0">Nenhuma reserva cadastrada. Use o + para incluir.</p>
-      </section>
-
-      <section class="card" aria-label="Documentos" style="flex:1 1 420px;min-width:0">
-        <div class="row first" style="padding-top:0">
-          <div><h2>Documentos</h2><span class="muted" id="docResumo"></span></div>
-          <button class="btn" type="button" id="novoDoc" aria-label="Adicionar documento" title="Adicionar documento" style="min-width:40px;padding:0 14px;font-size:20px;line-height:1">+</button>
-        </div>
-        <span class="hint">Guarde só a validade e uma observação. Não digite o número do documento.</span>
-        <div class="lista-itens" id="documentos" style="margin-top:8px"></div>
-        <p class="muted" id="semDocs" style="margin:8px 0 0">Nenhum documento cadastrado. Use o + para incluir.</p>
-      </section>
-    </div>
-  </main>
-</div>
-
-<dialog id="dlgReserva" aria-labelledby="resTitulo">
-  <form id="formReserva" style="display:flex;flex-direction:column;gap:16px">
-    <h2 id="resTitulo">Adicionar reserva</h2>
-    <div class="form-grid" style="grid-template-columns:1fr 1fr">
-      <div class="field"><label for="rTipo">Tipo</label>
-        <select id="rTipo"><option>Voo</option><option selected>Hospedagem</option><option>Aluguel de carro</option><option>Passeio ou ingresso</option><option>Transfer</option><option>Seguro-viagem</option><option>Outro</option></select></div>
-      <div class="field"><label for="rStatus">Situação</label>
-        <select id="rStatus"><option>Confirmada</option><option>Pendente</option></select></div>
-    </div>
-    <div class="field"><label for="rNome">Nome da reserva</label><input id="rNome" required placeholder="ex.: Hotel Miraflores, voo LA 8084" autocomplete="off"></div>
-    <div class="form-grid" style="grid-template-columns:1fr 1fr">
-      <div class="field"><label for="rLoc">Localizador ou confirmação</label><input id="rLoc" autocomplete="off" placeholder="opcional"></div>
-      <div class="field"><label for="rCancel">Cancelamento grátis até</label><input id="rCancel" type="date"></div>
-      <div class="field"><label for="rIni">Início (check-in, saída)</label><input id="rIni" type="date"></div>
-      <div class="field"><label for="rFim">Fim (check-out, volta)</label><input id="rFim" type="date"></div>
-    </div>
-    <div class="field"><label for="rLink">Link da reserva</label><input id="rLink" type="url" placeholder="opcional: https://…" autocomplete="off"></div>
-    <div class="field"><label for="rObs">Observação</label><input id="rObs" placeholder="opcional: política de cancelamento, forma de pagamento…" autocomplete="off"></div>
-    <span class="hint hidden" id="rErro" role="alert"></span>
-    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-      <button class="btn link" type="button" id="rCancelar">Cancelar</button>
-      <button class="btn" type="submit" id="rEnviar">Adicionar</button>
-    </div>
-  </form>
-</dialog>
-
-<dialog id="dlgDoc" aria-labelledby="docTitulo">
-  <form id="formDoc" style="display:flex;flex-direction:column;gap:16px">
-    <h2 id="docTitulo">Adicionar documento</h2>
-    <div class="form-grid" style="grid-template-columns:1fr 1fr">
-      <div class="field"><label for="dPessoa">Pessoa</label><input id="dPessoa" required placeholder="ex.: Fabio" autocomplete="off"></div>
-      <div class="field"><label for="dTipo">Tipo</label>
-        <select id="dTipo"><option>Passaporte</option><option>Visto</option><option>Seguro-viagem</option><option>Vacina ou certificado</option><option>Documento de identidade</option><option>Outro</option></select></div>
-      <div class="field"><label for="dVal">Validade</label><input id="dVal" type="date"></div>
-    </div>
-    <div class="field"><label for="dObs">Observação</label><input id="dObs" placeholder="ex.: seguradora, cobertura, onde está guardado" autocomplete="off"></div>
-    <span class="hint">Não digite o número do documento.</span>
-    <span class="hint hidden" id="dErro" role="alert"></span>
-    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-      <button class="btn link" type="button" id="dCancelar">Cancelar</button>
-      <button class="btn" type="submit" id="dEnviar">Adicionar</button>
-    </div>
-  </form>
-</dialog>
-<script src="js/app.js"></script>
-<script src="js/reservas.js"></script>
+<body>
+<p>Reservas e documentos agora ficam no Roteiro. <a href="roteiro.html#reservas">Abrir</a></p>
+<script>location.replace('roteiro.html#reservas');</script>
 </body>
 </html>

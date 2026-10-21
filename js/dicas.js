@@ -118,7 +118,7 @@
         ['Passaporte e visto', 'Confira a validade do passaporte e se o destino exige visto ou autorização eletrônica. Exigências variam por país e mudam: consulte o site oficial do destino.'],
         ['Seguro-viagem', 'Em viagens internacionais, confirme se o destino exige seguro e qual cobertura mínima.'],
         ['Câmbio', 'Defina a moeda e a cotação usada no orçamento do Roteiro, e anote a data da cotação.'],
-        ['Reservas e prazos', 'Registre prazos de cancelamento e pagamento em Reservas e documentos para aparecerem no Painel.']
+        ['Reservas e prazos', 'Registre prazos de cancelamento e pagamento na aba Reservas e documentos do Roteiro para aparecerem no Painel.']
       ]);
     }
   };

@@ -1,7 +1,7 @@
-// Reservas e documentos da viagem aberta. Salvos junto com o roteiro (neste navegador).
-(function () {
+// Reservas e documentos da viagem aberta (aba do Roteiro). Salvos junto com o roteiro (neste navegador).
+// Recebe o mesmo estado do Roteiro e a função de salvar dele, para as duas telas não se sobrescreverem.
+window.iniciarReservas = function (estado, salvarGeral) {
   var viagem = App.ler('viagem', {});
-  var estado = App.normalizarRoteiro(App.ler('roteiro', null));
   function $(id) { return document.getElementById(id); }
   function criar(tag, classe, texto) {
     var e = document.createElement(tag);
@@ -9,19 +9,8 @@
     if (texto != null) e.textContent = texto;
     return e;
   }
-  function salvar() { App.salvarRoteiro(estado); }
+  function salvar() { salvarGeral(); }
   function novoId() { return Date.now() + '-' + Math.random().toString(36).slice(2, 7); }
-
-  if (!viagem.destino) {
-    $('semViagem').classList.remove('hidden');
-    $('conteudo').classList.add('hidden');
-    return;
-  }
-  $('titulo').textContent = 'Reservas e documentos: ' + viagem.destino;
-  if (viagem.ida) {
-    $('subtitulo').textContent = App.data(viagem.ida) + (viagem.volta ? ' a ' + App.data(viagem.volta) : '') +
-      (viagem.pessoas ? ' · ' + viagem.pessoas + (viagem.pessoas === '1' ? ' pessoa' : ' pessoas') : '');
-  }
 
   function plural(n, um, varios) { return n + ' ' + (n === 1 ? um : varios); }
 
@@ -195,5 +184,5 @@
   }
 
   function desenhar() { desenharReservas(); desenharDocumentos(); }
-  desenhar();
-})();
+  return { desenhar: desenhar };
+};

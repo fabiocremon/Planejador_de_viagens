@@ -112,7 +112,6 @@
   var PAGINAS = [
     ['index', 'index.html', 'Painel', 'painel'],
     ['roteiro', 'roteiro.html', 'Roteiro', 'roteiro'],
-    ['reservas', 'reservas.html', 'Reservas e documentos', 'reservas'],
     ['voos', 'voos.html', 'Voos', 'voos'],
     ['milhas', 'milhas.html', 'Milhas x dinheiro', 'milhas'],
     ['dicas', 'dicas.html', 'Dicas', 'dicas'],
