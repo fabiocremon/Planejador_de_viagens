@@ -59,13 +59,43 @@
           <p class="hint" style="margin:8px 0 0">Total da viagem = custos das atividades + custos lançados aqui. Confirme preços na fonte antes de reservar.</p>
         </section>
         <section class="card" aria-label="Lembretes">
-          <h2>Lembretes</h2>
-          <p class="muted" style="margin:10px 0 0;line-height:1.5">Documentos, seguro-viagem, câmbio, chip ou roaming e previsão do tempo.</p>
+          <div class="row first" style="padding-top:0">
+            <h2>Lembretes</h2>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="btn link" type="button" id="sugestoes">Sugestões</button>
+              <button class="btn" type="button" id="novoLembrete" aria-label="Adicionar lembrete" title="Adicionar lembrete" style="min-width:40px;padding:0 14px;font-size:20px;line-height:1">+</button>
+            </div>
+          </div>
+          <span class="hint" id="lembProgresso" role="status"></span>
+          <div id="lembLista" style="margin-top:6px"></div>
+          <p class="muted" id="semLemb" style="margin:8px 0 0">Nenhum lembrete. Use o + ou veja as sugestões.</p>
         </section>
       </aside>
     </div>
   </main>
 </div>
+<dialog id="dlgLembrete" aria-labelledby="lembTitulo">
+  <form id="formLembrete" style="display:flex;flex-direction:column;gap:16px">
+    <h2 id="lembTitulo">Adicionar lembrete</h2>
+    <div class="field"><label for="lTexto">Lembrete</label><input id="lTexto" required placeholder="ex.: conferir validade do passaporte" autocomplete="off"></div>
+    <div class="field" style="max-width:220px"><label for="lData">Prazo (opcional)</label><input id="lData" type="date"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn link" type="button" id="lCancelar">Cancelar</button>
+      <button class="btn" type="submit" id="lEnviar">Adicionar</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="dlgSugestoes" aria-labelledby="sugTitulo">
+  <form id="formSugestoes" style="display:flex;flex-direction:column;gap:14px">
+    <h2 id="sugTitulo">Sugestões de lembretes</h2>
+    <span class="hint">Marque os que quer incluir. Confirme as regras do destino em fonte oficial.</span>
+    <div id="sugLista" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn link" type="button" id="sCancelar">Cancelar</button>
+      <button class="btn" type="submit">Incluir marcados</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="dlgCusto" aria-labelledby="custoTitulo">
   <form id="formCusto" style="display:flex;flex-direction:column;gap:16px">
     <h2 id="custoTitulo">Adicionar custo</h2>

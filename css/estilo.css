@@ -204,3 +204,13 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 .custo-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .custo-acoes { display: flex; gap: 4px; margin-left: -8px; }
 .custo-acoes .btn { min-height: 28px; font-size: 12px; padding: 0 8px; }
+
+/* Lembretes do Roteiro */
+.lemb-item { padding: 8px 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.lemb-item:first-child { border-top: 0; padding-top: 0; }
+.lemb-check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.lemb-check input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent); flex: none; }
+.lemb-item.feito .lemb-texto { text-decoration: line-through; color: var(--muted); }
+.lemb-item .muted, .lemb-item .custo-acoes { margin-left: 28px; }
+.lemb-item .custo-acoes { margin-left: 20px; }
+#sugLista .lemb-check { font-size: 14px; }

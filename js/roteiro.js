@@ -3,6 +3,7 @@
   var viagem = App.ler('viagem', {});
   var estado = App.ler('roteiro', { dias: 1, atividades: [] });
   if (!Array.isArray(estado.custos)) estado.custos = [];
+  if (!Array.isArray(estado.lembretes)) estado.lembretes = [];
   var diaAtual = 1;
 
   function $(id) { return document.getElementById(id); }
@@ -197,6 +198,118 @@
     desenhar();
   });
 
+  // ----- Lembretes (checklist) -----
+  var SUGESTOES = [
+    { grupo: 'Viagem internacional', itens: [
+      'Conferir a validade do passaporte exigida pelo destino',
+      'Ver se o destino exige visto ou autorização de entrada',
+      'Contratar seguro-viagem',
+      'Definir câmbio e cartão para uso no exterior',
+      'Chip, eSIM ou roaming'] },
+    { grupo: 'Qualquer viagem', itens: [
+      'Separar documentos pessoais',
+      'Confirmar reservas (voo e hospedagem)',
+      'Fazer o check-in online',
+      'Ver a previsão do tempo',
+      'Avisar o banco e conferir limite do cartão'] }
+  ];
+  var dlgLemb = $('dlgLembrete'), dlgSug = $('dlgSugestoes');
+  var lembEditando = null;
+
+  function desenharLembretes() {
+    var caixa = $('lembLista');
+    caixa.textContent = '';
+    var itens = estado.lembretes;
+    $('semLemb').classList.toggle('hidden', itens.length > 0);
+    var feitos = itens.filter(function (l) { return l.feito; }).length;
+    $('lembProgresso').textContent = itens.length ? feitos + ' de ' + itens.length + (feitos === 1 ? ' feito' : ' feitos') : '';
+    itens.slice().sort(function (a, b) {
+      if (!!a.feito !== !!b.feito) return a.feito ? 1 : -1;
+      return (a.data || '9999').localeCompare(b.data || '9999');
+    }).forEach(function (l) {
+      var linha = criar('div', 'lemb-item' + (l.feito ? ' feito' : ''));
+      var rotulo = criar('label', 'lemb-check');
+      var cb = criar('input', '');
+      cb.type = 'checkbox';
+      cb.checked = !!l.feito;
+      cb.addEventListener('change', function () { l.feito = cb.checked; salvar(); desenhar(); });
+      var txt = criar('span', 'lemb-texto', l.texto);
+      rotulo.appendChild(cb); rotulo.appendChild(txt);
+      linha.appendChild(rotulo);
+      if (l.data) linha.appendChild(criar('span', 'muted', 'Prazo: ' + App.data(l.data)));
+      var acoes = criar('div', 'custo-acoes');
+      var ed = criar('button', 'btn link', 'Editar');
+      ed.type = 'button';
+      ed.setAttribute('aria-label', 'Editar lembrete: ' + l.texto);
+      ed.addEventListener('click', function () { abrirLembrete(l); });
+      var rem = criar('button', 'btn link', 'Remover');
+      rem.type = 'button';
+      rem.setAttribute('aria-label', 'Remover lembrete: ' + l.texto);
+      rem.addEventListener('click', function () {
+        if (!confirm('Remover o lembrete "' + l.texto + '"?')) return;
+        estado.lembretes = estado.lembretes.filter(function (x) { return x.id !== l.id; });
+        salvar(); desenhar();
+      });
+      acoes.appendChild(ed); acoes.appendChild(rem);
+      linha.appendChild(acoes);
+      caixa.appendChild(linha);
+    });
+  }
+
+  function novoId() { return Date.now() + '-' + Math.random().toString(36).slice(2, 7); }
+
+  function abrirLembrete(l) {
+    lembEditando = l || null;
+    $('lembTitulo').textContent = l ? 'Editar lembrete' : 'Adicionar lembrete';
+    $('lEnviar').textContent = l ? 'Salvar alterações' : 'Adicionar';
+    $('lTexto').value = l ? l.texto : '';
+    $('lData').value = l ? (l.data || '') : '';
+    dlgLemb.showModal();
+    $('lTexto').focus();
+  }
+  $('novoLembrete').addEventListener('click', function () { abrirLembrete(null); });
+  $('lCancelar').addEventListener('click', function () { dlgLemb.close(); });
+  $('formLembrete').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var texto = $('lTexto').value.trim();
+    if (!texto) return;
+    if (lembEditando) { lembEditando.texto = texto; lembEditando.data = $('lData').value; }
+    else estado.lembretes.push({ id: novoId(), texto: texto, data: $('lData').value, feito: false });
+    salvar(); dlgLemb.close(); desenhar();
+  });
+
+  $('sugestoes').addEventListener('click', function () {
+    var lista = $('sugLista');
+    lista.textContent = '';
+    var existentes = estado.lembretes.map(function (l) { return l.texto; });
+    var algum = false;
+    SUGESTOES.forEach(function (g) {
+      var novos = g.itens.filter(function (t) { return existentes.indexOf(t) < 0; });
+      if (!novos.length) return;
+      algum = true;
+      lista.appendChild(criar('strong', '', g.grupo));
+      novos.forEach(function (t) {
+        var r = criar('label', 'lemb-check');
+        var cb = criar('input', '');
+        cb.type = 'checkbox';
+        cb.value = t;
+        r.appendChild(cb); r.appendChild(criar('span', '', t));
+        lista.appendChild(r);
+      });
+    });
+    if (!algum) lista.appendChild(criar('p', 'muted', 'Você já incluiu todas as sugestões.'));
+    dlgSug.showModal();
+  });
+  $('sCancelar').addEventListener('click', function () { dlgSug.close(); });
+  $('formSugestoes').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var marcados = $('sugLista').querySelectorAll('input:checked');
+    Array.prototype.forEach.call(marcados, function (cb) {
+      estado.lembretes.push({ id: novoId(), texto: cb.value, data: '', feito: false });
+    });
+    salvar(); dlgSug.close(); desenhar();
+  });
+
   function desenhar() {
     $('tituloDia').textContent = rotuloDia(diaAtual);
     $('removerDia').classList.toggle('hidden', estado.dias <= 1);
@@ -204,6 +317,7 @@
     desenharLista();
     desenharTotais();
     desenharCustos();
+    desenharLembretes();
   }
 
   $('removerDia').addEventListener('click', function () {
