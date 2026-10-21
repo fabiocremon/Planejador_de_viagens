@@ -106,6 +106,7 @@
     milhas: '<circle cx="12" cy="12" r="9"/><path d="M9 12h6M12 9v6"/>',
     reservas: '<path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/>',
     dicas: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
+    ajuda: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7"/><path d="M12 17h.01"/>',
     voos: '<path d="M17.8 19.2 16 11l3.5-3.5a2.1 2.1 0 0 0-3-3L13 8 4.8 6.2 3.5 7.5l6.7 3.7-3 3-2.7-.5L3 15l4 2 2 4 1.3-1.5-.5-2.7 3-3 3.7 6.7z"/>'
   };
   var PAGINAS = [
@@ -114,7 +115,8 @@
     ['reservas', 'reservas.html', 'Reservas e documentos', 'reservas'],
     ['voos', 'voos.html', 'Voos', 'voos'],
     ['milhas', 'milhas.html', 'Milhas x dinheiro', 'milhas'],
-    ['dicas', 'dicas.html', 'Dicas', 'dicas']
+    ['dicas', 'dicas.html', 'Dicas', 'dicas'],
+    ['como-usar', 'como-usar.html', 'Como usar o planejador', 'ajuda']
   ];
 
   function svg(caminho, tam) {

@@ -340,3 +340,13 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 .dica-item + .dica-grade, .card > .dica-grade { margin-top: 14px; }
 @media (min-width: 641px) { .side { position: sticky; top: 0; height: 100vh; overflow-y: auto; } }
 @media print { .side { position: static; } }
+
+/* Como usar o planejador */
+.guia-passos { margin: 12px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; }
+.guia-passos li::marker { color: var(--accent-text); font-weight: 700; }
+.guia-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.guia-card { display: flex; flex-direction: column; gap: 12px; }
+.guia-card ul, .guia-lista { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.guia-lista { margin-top: 10px; }
+.guia-card .btn { align-self: flex-start; margin-top: auto; text-decoration: none; display: inline-flex; align-items: center; }
+code { background: var(--soft); padding: 1px 6px; border-radius: 6px; font-size: 13px; }
