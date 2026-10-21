@@ -260,8 +260,10 @@ dialog .card { border: 0; padding: 0; background: transparent; }
   .side, .tabs, .no-print, dialog { display: none !important; }
   .app { display: block; }
   .main { padding: 0; gap: 12px; }
-  .card { break-inside: avoid; border-color: #CCCCCC; }
-  .resumo-dia { break-inside: avoid; }
+  .card { border-color: #CCCCCC; }
+  .resumo-sec { break-inside: auto; }
+  .resumo-sec .row.first { break-after: avoid; }
+  .resumo-dia, .resumo-dados .kpi { break-inside: avoid; }
 }
 
 /* Avião antes do título: só aparece na impressão / PDF */
@@ -270,3 +272,6 @@ dialog .card { border: 0; padding: 0; background: transparent; }
   .cab-roteiro { display: flex; align-items: center; gap: 12px; }
   .aviao-impressao { display: block; flex: none; color: var(--accent-text); }
 }
+
+.resumo-dia.vazio { padding: 6px 0; }
+.resumo-dia.vazio .resumo-dia-cab { margin-bottom: 0; }

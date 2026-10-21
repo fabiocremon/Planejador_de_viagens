@@ -429,14 +429,14 @@
         var tit = criar('strong', '', rotuloDia(n));
         cab.appendChild(tit);
         var totalDia = atvs.reduce(function (t, a) { return t + (a.custo || 0); }, 0);
-        cab.appendChild(criar('span', 'muted', atvs.length + (atvs.length === 1 ? ' atividade' : ' atividades') + (totalDia > 0 ? ' · ' + App.brl(totalDia) : '')));
+        cab.appendChild(criar('span', 'muted', !atvs.length ? 'sem atividades' : atvs.length + (atvs.length === 1 ? ' atividade' : ' atividades') + (totalDia > 0 ? ' · ' + App.brl(totalDia) : '')));
+        if (!atvs.length) bloco.className += ' vazio';
         var ir = criar('button', 'btn link no-print', 'Abrir dia');
         ir.type = 'button';
         ir.setAttribute('aria-label', 'Abrir o dia ' + n);
         ir.addEventListener('click', function () { diaAtual = n; desenhar(); });
         cab.appendChild(ir);
         bloco.appendChild(cab);
-        if (!atvs.length) bloco.appendChild(criar('div', 'muted', 'Sem atividades.'));
         atvs.forEach(function (a) {
           var l = criar('div', 'resumo-atv');
           l.appendChild(criar('span', 'resumo-hora', a.hora || '—'));
