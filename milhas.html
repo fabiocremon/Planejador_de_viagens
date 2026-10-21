@@ -78,9 +78,36 @@
         </section>
       </div>
     </div>
+
+    <section class="card" aria-label="Calculadora do valor do milheiro" id="calcMilheiro" style="display:flex;flex-direction:column;gap:16px">
+      <div><h2>Calculadora do valor do milheiro</h2><span class="muted">Quanto custou, de fato, cada 1.000 milhas, contando a bonificação da transferência.</span></div>
+      <div class="cols" style="align-items:flex-start">
+        <div style="flex:1 1 280px;display:flex;flex-direction:column;gap:14px">
+          <div class="field"><label for="mpPontos">Pontos ou milhas comprados</label><input id="mpPontos" inputmode="numeric" placeholder="ex.: 50.000" autocomplete="off"></div>
+          <div class="field"><label for="mpValor">Valor pago (R$)</label><input id="mpValor" inputmode="decimal" placeholder="ex.: 1.610,00" autocomplete="off"></div>
+          <div class="field"><label for="mpBonus">Bonificação da transferência (%)</label><input id="mpBonus" inputmode="decimal" placeholder="ex.: 30 (deixe vazio se não houve)" autocomplete="off"></div>
+          <div class="field"><label for="mpExtra">Outros custos (R$, opcional)</label><input id="mpExtra" inputmode="decimal" placeholder="ex.: taxa de clube ou de transferência" autocomplete="off"><span class="hint">Só o que você informar entra na conta.</span></div>
+        </div>
+        <div style="flex:1 1 280px;display:flex;flex-direction:column;gap:12px" aria-live="polite">
+          <div class="kpi destaque custos-kpi" style="display:flex;flex-direction:column;gap:2px;padding:14px;background:var(--bg);border:1px solid var(--accent);border-radius:12px">
+            <span class="muted">Valor do milheiro final</span><strong class="big" id="mpFinal">—</strong>
+          </div>
+          <div class="row"><span class="muted">Milhas finais</span><strong id="mpMilhas">—</strong></div>
+          <div class="row"><span class="muted">Custo total</span><strong id="mpCusto">—</strong></div>
+          <div class="row"><span class="muted">Milheiro sem bonificação</span><strong id="mpSem">—</strong></div>
+          <div class="row"><span class="muted">Economia pela bonificação</span><strong id="mpEcon">—</strong></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" type="button" id="mpUsar" disabled>Usar como meu custo do milheiro</button>
+            <button class="btn link" type="button" id="mpLimpar">Limpar</button>
+          </div>
+          <span class="hint hidden" id="mpMsg" role="status"></span>
+        </div>
+      </div>
+    </section>
   </main>
 </div>
 <script src="js/app.js"></script>
 <script src="js/milhas.js"></script>
+<script src="js/milheiro.js"></script>
 </body>
 </html>

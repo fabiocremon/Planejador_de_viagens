@@ -338,3 +338,5 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 .dica-item { padding: 10px 0; border-top: 1px solid var(--border); }
 .dica-item p { margin: 4px 0 0; }
 .dica-item + .dica-grade, .card > .dica-grade { margin-top: 14px; }
+@media (min-width: 641px) { .side { position: sticky; top: 0; height: 100vh; overflow-y: auto; } }
+@media print { .side { position: static; } }
