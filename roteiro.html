@@ -27,7 +27,13 @@
     <div class="cols" id="telaDia">
       <div style="flex:2 1 460px;min-width:0;display:flex;flex-direction:column;gap:20px">
         <section class="card" aria-label="Atividades do dia">
-          <div class="row first" style="padding-top:0"><h2 id="tituloDia">Dia 1</h2><button class="btn link" type="button" id="removerDia">Remover dia</button></div>
+          <div class="row first" style="padding-top:0"><h2 id="tituloDia">Dia 1</h2>
+            <div class="item-acoes" style="margin-left:0;justify-content:flex-end">
+              <button class="btn link" type="button" id="moverEsq" aria-label="Mover este dia para antes">← Mover</button>
+              <button class="btn link" type="button" id="moverDir" aria-label="Mover este dia para depois">Mover →</button>
+              <button class="btn link" type="button" id="duplicarDia">Duplicar dia</button>
+              <button class="btn link" type="button" id="removerDia">Remover dia</button>
+            </div></div>
           <div id="lista"></div>
           <p class="muted hidden" id="vazio" style="margin:0">Nenhuma atividade neste dia ainda.</p>
         </section>
@@ -41,6 +47,7 @@
             <div class="field"><label for="custo">Custo (R$)</label><input id="custo" inputmode="decimal" placeholder="opcional"></div>
           </div>
           <div class="field"><label for="ativTitulo">O que é</label><input id="ativTitulo" required placeholder="ex.: nome da atração ou do restaurante" autocomplete="off"></div>
+          <div class="field"><label for="endereco">Endereço ou local</label><input id="endereco" placeholder="opcional: usado no botão Abrir no mapa" autocomplete="off"></div>
           <div class="field"><label for="detalhe">Detalhes</label><input id="detalhe" placeholder="endereço, confirmação, horário de funcionamento…" autocomplete="off"></div>
           <button class="btn" type="submit" style="align-self:flex-start">Adicionar ao dia</button>
         </form>
@@ -61,6 +68,15 @@
           <div id="orcBloco" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"></div>
           <p class="muted hidden" id="semCustos" style="margin:10px 0 0">Nenhum custo lançado. Use o + para incluir.</p>
           <p class="hint" style="margin:8px 0 0">Total da viagem = custos das atividades + custos lançados aqui. Confirme preços na fonte antes de reservar.</p>
+        </section>
+        <section class="card" aria-label="Ideias sem dia">
+          <div class="row first" style="padding-top:0">
+            <h2>Ideias sem dia</h2>
+            <button class="btn" type="button" id="novaIdeia" aria-label="Adicionar ideia" title="Adicionar ideia" style="min-width:40px;padding:0 14px;font-size:20px;line-height:1">+</button>
+          </div>
+          <span class="hint">O que você quer conhecer, ainda sem dia marcado.</span>
+          <div id="ideiasLista" style="margin-top:6px"></div>
+          <p class="muted" id="semIdeias" style="margin:8px 0 0">Nenhuma ideia. Use o + para anotar.</p>
         </section>
         <section class="card" aria-label="Lembretes">
           <div class="row first" style="padding-top:0">
@@ -108,6 +124,36 @@
     </div>
     <div id="custosDetalhe"></div>
   </div>
+</dialog>
+<dialog id="dlgAtiv" aria-labelledby="ativDlgTitulo">
+  <form id="formAtiv" style="display:flex;flex-direction:column;gap:16px">
+    <h2 id="ativDlgTitulo">Editar atividade</h2>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr">
+      <div class="field"><label for="eDia">Dia</label><select id="eDia"></select></div>
+      <div class="field"><label for="eHora">Horário (24h)</label><input id="eHora" type="time"></div>
+      <div class="field"><label for="eTipo">Tipo</label>
+        <select id="eTipo"><option>Voo</option><option>Hospedagem</option><option>Passeio</option><option>Refeição</option><option>Transporte</option><option>Outro</option></select></div>
+      <div class="field"><label for="eCusto">Custo (R$)</label><input id="eCusto" inputmode="decimal" placeholder="opcional" autocomplete="off"></div>
+    </div>
+    <div class="field"><label for="eTitulo">O que é</label><input id="eTitulo" required autocomplete="off"></div>
+    <div class="field"><label for="eEndereco">Endereço ou local</label><input id="eEndereco" autocomplete="off" placeholder="opcional"></div>
+    <div class="field"><label for="eDetalhe">Detalhes</label><input id="eDetalhe" autocomplete="off"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn link" type="button" id="eCancelar">Cancelar</button>
+      <button class="btn" type="submit">Salvar alterações</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="dlgIdeia" aria-labelledby="ideiaTitulo">
+  <form id="formIdeia" style="display:flex;flex-direction:column;gap:16px">
+    <h2 id="ideiaTitulo">Adicionar ideia</h2>
+    <div class="field"><label for="iTexto">O que você quer conhecer ou fazer</label><input id="iTexto" required placeholder="ex.: Machu Picchu, show de pisco" autocomplete="off"></div>
+    <div class="field"><label for="iEndereco">Endereço ou local</label><input id="iEndereco" placeholder="opcional" autocomplete="off"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn link" type="button" id="iCancelar">Cancelar</button>
+      <button class="btn" type="submit">Adicionar</button>
+    </div>
+  </form>
 </dialog>
 <dialog id="dlgOrc" aria-labelledby="orcTitulo">
   <form id="formOrc" style="display:flex;flex-direction:column;gap:16px">

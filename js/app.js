@@ -43,6 +43,13 @@
       if (!m) return null;
       return Math.round((Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(+h[1], +h[2] - 1, +h[3])) / 86400000);
     },
+    // Soma n dias a uma data ISO e devolve "AAAA-MM-DD".
+    somarDias: function (iso, n) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+      if (!m) return '';
+      var d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + n));
+      return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+    },
     // Soma n meses a uma data ISO.
     somarMeses: function (iso, n) {
       var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');

@@ -3,6 +3,14 @@
   var viagem = App.ler('viagem', {});
   var estado = App.normalizarRoteiro(App.ler('roteiro', null));
   var diaAtual = 1;
+  // Versões antigas mostravam as atividades ordenadas por horário. Agora a ordem é a da lista (pode ser mudada à mão).
+  if (estado.ordem !== 2) {
+    estado.atividades = estado.atividades.map(function (a, i) { return { a: a, i: i }; }).sort(function (x, y) {
+      return (x.a.dia - y.a.dia) || (x.a.hora || '99:99').localeCompare(y.a.hora || '99:99') || (x.i - y.i);
+    }).map(function (o) { return o.a; });
+    estado.ordem = 2;
+    App.salvarRoteiro(estado);
+  }
 
   function $(id) { return document.getElementById(id); }
   // Salva o roteiro e mantém em dia a viagem salva que está aberta.
@@ -57,12 +65,44 @@
     abas.appendChild(mais);
   }
 
+  function urlMapa(a) {
+    var q = a.endereco || (a.titulo + (viagem.destino ? ' ' + viagem.destino : ''));
+    return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+  }
+
+  // Coloca a atividade no dia certo, respeitando o horário (sem horário vai para o fim do dia).
+  function inserirAtividade(nova) {
+    var pos = -1;
+    if (nova.hora) {
+      for (var i = 0; i < estado.atividades.length; i++) {
+        var a = estado.atividades[i];
+        if (a.dia === nova.dia && (!a.hora || a.hora > nova.hora)) { pos = i; break; }
+      }
+    }
+    if (pos < 0) {
+      // fim do dia: depois da última atividade desse dia (ou no fim da lista)
+      var ultimo = -1;
+      estado.atividades.forEach(function (a, i) { if (a.dia <= nova.dia) ultimo = i; });
+      pos = ultimo + 1;
+    }
+    estado.atividades.splice(pos, 0, nova);
+  }
+
+  function novoId() { return Date.now() + '-' + Math.random().toString(36).slice(2, 7); }
+
+  function trocar(a, dir) {
+    var doDia = estado.atividades.filter(function (x) { return x.dia === a.dia; });
+    var i = doDia.indexOf(a), j = i + dir;
+    if (j < 0 || j >= doDia.length) return;
+    var ia = estado.atividades.indexOf(doDia[i]), ib = estado.atividades.indexOf(doDia[j]);
+    estado.atividades[ia] = doDia[j]; estado.atividades[ib] = doDia[i];
+    salvar(); desenhar();
+  }
+
   function desenharLista() {
     var lista = $('lista');
     lista.textContent = '';
-    var doDia = estado.atividades
-      .filter(function (a) { return a.dia === diaAtual; })
-      .sort(function (a, b) { return (a.hora || '99:99').localeCompare(b.hora || '99:99'); });
+    var doDia = estado.atividades.filter(function (a) { return a.dia === diaAtual; });
 
     $('vazio').classList.toggle('hidden', doDia.length > 0);
 
@@ -70,25 +110,151 @@
       var linha = criar('div', 'slot' + (i === 0 ? ' first' : ''));
       linha.appendChild(criar('div', 'time', a.hora || '—'));
       var corpo = criar('div', 'body');
-      corpo.appendChild(criar('span', 'chip', a.tipo));
-      corpo.appendChild(criar('strong', '', a.titulo));
+      var topo = criar('div', '');
+      topo.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;align-items:center';
+      topo.appendChild(criar('span', 'chip', a.tipo));
+      topo.appendChild(criar('strong', '', a.titulo));
+      corpo.appendChild(topo);
+      if (a.endereco) corpo.appendChild(criar('span', 'muted', a.endereco));
       var extra = [];
       if (a.detalhe) extra.push(a.detalhe);
       if (a.custo > 0) extra.push(App.brl(a.custo));
       if (extra.length) corpo.appendChild(criar('span', 'muted', extra.join(' · ')));
-      var rem = criar('button', 'btn link', 'Remover');
-      rem.type = 'button';
-      rem.setAttribute('aria-label', 'Remover ' + a.titulo);
-      rem.addEventListener('click', function () {
+
+      var acoes = criar('div', 'item-acoes');
+      function botao(txt, rot, fn, desab) {
+        var b = criar('button', 'btn link', txt);
+        b.type = 'button';
+        b.setAttribute('aria-label', rot + ': ' + a.titulo);
+        if (desab) b.disabled = true;
+        b.addEventListener('click', fn);
+        acoes.appendChild(b);
+      }
+      botao('↑', 'Subir', function () { trocar(a, -1); }, i === 0);
+      botao('↓', 'Descer', function () { trocar(a, 1); }, i === doDia.length - 1);
+      var mapa = criar('a', 'btn link', 'Abrir no mapa');
+      mapa.href = urlMapa(a); mapa.target = '_blank'; mapa.rel = 'noopener noreferrer';
+      mapa.setAttribute('aria-label', 'Abrir no mapa: ' + a.titulo);
+      acoes.appendChild(mapa);
+      botao('Editar', 'Editar', function () { abrirAtiv(a); });
+      botao('Duplicar', 'Duplicar', function () {
+        var copia = {}; Object.keys(a).forEach(function (k) { copia[k] = a[k]; });
+        copia.id = novoId(); copia.titulo = a.titulo + ' (cópia)';
+        estado.atividades.splice(estado.atividades.indexOf(a) + 1, 0, copia);
+        salvar(); desenhar();
+      });
+      botao('Remover', 'Remover', function () {
         if (!confirm('Remover "' + a.titulo + '" do roteiro?')) return;
         estado.atividades = estado.atividades.filter(function (x) { return x.id !== a.id; });
         salvar(); desenhar();
       });
+      corpo.appendChild(acoes);
       linha.appendChild(corpo);
-      linha.appendChild(rem);
       lista.appendChild(linha);
     });
   }
+
+  // ----- Editar atividade (inclui mover para outro dia) -----
+  var dlgAtiv = $('dlgAtiv'), ativEditando = null;
+  function abrirAtiv(a) {
+    ativEditando = a;
+    var sel = $('eDia');
+    sel.textContent = '';
+    for (var n = 1; n <= estado.dias; n++) { var o = criar('option', '', rotuloDia(n)); o.value = String(n); sel.appendChild(o); }
+    sel.value = String(a.dia);
+    $('eHora').value = a.hora || '';
+    $('eTipo').value = a.tipo;
+    $('eCusto').value = a.custo > 0 ? a.custo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    $('eTitulo').value = a.titulo;
+    $('eEndereco').value = a.endereco || '';
+    $('eDetalhe').value = a.detalhe || '';
+    dlgAtiv.showModal();
+    $('eTitulo').focus();
+  }
+  $('eCancelar').addEventListener('click', function () { dlgAtiv.close(); });
+  $('formAtiv').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var a = ativEditando;
+    var titulo = $('eTitulo').value.trim();
+    if (!a || !titulo) return;
+    var novoDia = parseInt($('eDia').value, 10), novaHora = $('eHora').value;
+    var reposicionar = novoDia !== a.dia || novaHora !== (a.hora || '');
+    a.dia = novoDia; a.hora = novaHora; a.tipo = $('eTipo').value; a.titulo = titulo;
+    a.endereco = $('eEndereco').value.trim(); a.detalhe = $('eDetalhe').value.trim(); a.custo = App.num($('eCusto').value);
+    if (reposicionar) { estado.atividades = estado.atividades.filter(function (x) { return x !== a; }); inserirAtividade(a); }
+    salvar(); dlgAtiv.close();
+    if (novoDia !== diaAtual) diaAtual = novoDia;
+    desenhar();
+  });
+
+  // ----- Dias: duplicar e mover -----
+  $('duplicarDia').addEventListener('click', function () {
+    var n = diaAtual;
+    var doDia = estado.atividades.filter(function (a) { return a.dia === n; });
+    estado.atividades.forEach(function (a) { if (a.dia > n) a.dia += 1; });
+    var copias = doDia.map(function (a) { var c = {}; Object.keys(a).forEach(function (k) { c[k] = a[k]; }); c.id = novoId(); c.dia = n + 1; return c; });
+    var ultimo = -1;
+    estado.atividades.forEach(function (a, i) { if (a.dia <= n) ultimo = i; });
+    Array.prototype.splice.apply(estado.atividades, [ultimo + 1, 0].concat(copias));
+    estado.dias += 1; diaAtual = n + 1;
+    salvar(); desenhar();
+  });
+  function moverDia(dir) {
+    var n = diaAtual, m = n + dir;
+    if (m < 1 || m > estado.dias) return;
+    estado.atividades.forEach(function (a) { if (a.dia === n) a.dia = m; else if (a.dia === m) a.dia = n; });
+    estado.atividades = estado.atividades.map(function (a, i) { return { a: a, i: i }; }).sort(function (x, y) { return (x.a.dia - y.a.dia) || (x.i - y.i); }).map(function (o) { return o.a; });
+    diaAtual = m;
+    salvar(); desenhar();
+  }
+  $('moverEsq').addEventListener('click', function () { moverDia(-1); });
+  $('moverDir').addEventListener('click', function () { moverDia(1); });
+
+  // ----- Ideias sem dia -----
+  var dlgIdeia = $('dlgIdeia');
+  function desenharIdeias() {
+    var caixa = $('ideiasLista');
+    caixa.textContent = '';
+    $('semIdeias').classList.toggle('hidden', estado.ideias.length > 0);
+    estado.ideias.forEach(function (it) {
+      var item = criar('div', 'item-linha');
+      var topo = criar('div', 'item-topo');
+      topo.appendChild(criar('strong', '', it.texto));
+      item.appendChild(topo);
+      if (it.endereco) item.appendChild(criar('span', 'muted', it.endereco));
+      var acoes = criar('div', 'item-acoes');
+      var colocar = criar('button', 'btn sec', 'Colocar no ' + rotuloDia(diaAtual).split(' · ')[0]);
+      colocar.type = 'button';
+      colocar.setAttribute('aria-label', 'Colocar ' + it.texto + ' no dia ' + diaAtual);
+      colocar.addEventListener('click', function () {
+        inserirAtividade({ id: novoId(), dia: diaAtual, hora: '', tipo: 'Passeio', titulo: it.texto, endereco: it.endereco || '', detalhe: '', custo: 0 });
+        estado.ideias = estado.ideias.filter(function (x) { return x.id !== it.id; });
+        salvar(); desenhar();
+      });
+      var mapa = criar('a', 'btn link', 'Mapa');
+      mapa.href = urlMapa({ endereco: it.endereco, titulo: it.texto }); mapa.target = '_blank'; mapa.rel = 'noopener noreferrer';
+      mapa.setAttribute('aria-label', 'Abrir no mapa: ' + it.texto);
+      var rem = criar('button', 'btn link', 'Remover'); rem.type = 'button';
+      rem.setAttribute('aria-label', 'Remover ideia ' + it.texto);
+      rem.addEventListener('click', function () {
+        if (!confirm('Remover a ideia "' + it.texto + '"?')) return;
+        estado.ideias = estado.ideias.filter(function (x) { return x.id !== it.id; });
+        salvar(); desenhar();
+      });
+      acoes.appendChild(colocar); acoes.appendChild(mapa); acoes.appendChild(rem);
+      item.appendChild(acoes);
+      caixa.appendChild(item);
+    });
+  }
+  $('novaIdeia').addEventListener('click', function () { $('iTexto').value = ''; $('iEndereco').value = ''; dlgIdeia.showModal(); $('iTexto').focus(); });
+  $('iCancelar').addEventListener('click', function () { dlgIdeia.close(); });
+  $('formIdeia').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var t = $('iTexto').value.trim();
+    if (!t) return;
+    estado.ideias.push({ id: novoId(), texto: t, endereco: $('iEndereco').value.trim() });
+    salvar(); dlgIdeia.close(); desenhar();
+  });
 
   function totais() {
     var t = { ativ: 0, lanc: 0, pago: 0, previsto: 0 };
@@ -414,7 +580,6 @@
     });
   }
 
-  function novoId() { return Date.now() + '-' + Math.random().toString(36).slice(2, 7); }
 
   function abrirLembrete(l) {
     lembEditando = l || null;
@@ -481,6 +646,58 @@
     return sec;
   }
 
+  // ----- Exportar para calendário (.ics) -----
+  function icsTexto(t) {
+    return String(t == null ? '' : t).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  }
+  // Linhas do .ics têm no máximo 75 bytes; o excesso continua na linha seguinte, iniciada por espaço.
+  function icsDobrar(linha) {
+    var enc = new TextEncoder(), partes = [], atual = '', bytes = 0;
+    Array.from(linha).forEach(function (ch) {
+      var b = enc.encode(ch).length;
+      if (bytes + b > 75) { partes.push(atual); atual = ' ' + ch; bytes = 1 + b; }
+      else { atual += ch; bytes += b; }
+    });
+    partes.push(atual);
+    return partes.join('\r\n');
+  }
+  function exportarIcs() {
+    if (!viagem.ida) return;
+    var agora = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    var ev = [];
+    function evento(uid, linhas) { ev.push(['BEGIN:VEVENT', 'UID:' + uid + '@planejador-viagens', 'DTSTAMP:' + agora].concat(linhas, ['END:VEVENT'])); }
+    estado.atividades.forEach(function (a) {
+      var data = App.somarDias(viagem.ida, a.dia - 1).replace(/-/g, '');
+      var linhas = ['SUMMARY:' + icsTexto(a.titulo)];
+      if (a.hora) { linhas.push('DTSTART:' + data + 'T' + a.hora.replace(':', '') + '00', 'DURATION:PT1H'); }
+      else linhas.push('DTSTART;VALUE=DATE:' + data);
+      if (a.endereco) linhas.push('LOCATION:' + icsTexto(a.endereco));
+      var desc = [a.tipo, a.detalhe].filter(Boolean).join(' · ');
+      if (desc) linhas.push('DESCRIPTION:' + icsTexto(desc));
+      evento('atv-' + a.id, linhas);
+    });
+    estado.reservas.forEach(function (r) {
+      if (!r.cancelamento) return;
+      evento('res-' + r.id, ['SUMMARY:' + icsTexto('Prazo para cancelar: ' + r.nome), 'DTSTART;VALUE=DATE:' + r.cancelamento.replace(/-/g, ''), 'DESCRIPTION:' + icsTexto(r.tipo + (r.localizador ? ' · Localizador ' + r.localizador : ''))]);
+    });
+    estado.lembretes.forEach(function (l) {
+      if (!l.data || l.feito) return;
+      evento('lem-' + l.id, ['SUMMARY:' + icsTexto('Lembrete: ' + l.texto), 'DTSTART;VALUE=DATE:' + l.data.replace(/-/g, '')]);
+    });
+    if (!ev.length) { alert('Não há atividades, prazos ou lembretes com data para exportar.'); return; }
+    var linhas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Planejador de viagens//PT-BR', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:' + icsTexto('Viagem: ' + (viagem.destino || ''))];
+    ev.forEach(function (e) { linhas = linhas.concat(e); });
+    linhas.push('END:VCALENDAR');
+    var texto = linhas.map(icsDobrar).join('\r\n') + '\r\n';
+    var blob = new Blob([texto], { type: 'text/calendar;charset=utf-8' });
+    var a = document.createElement('a');
+    var slug = (viagem.destino || 'viagem').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'roteiro-' + (slug || 'viagem') + '.ics';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  }
+
   function desenharResumo() {
     var r = $('resumo');
     r.textContent = '';
@@ -495,7 +712,12 @@
     imp.type = 'button';
     imp.title = 'Na janela de impressão, escolha "Salvar como PDF"';
     imp.addEventListener('click', function () { window.print(); });
-    acoes.appendChild(alt); acoes.appendChild(imp);
+    var cal = criar('button', 'btn sec', 'Adicionar ao calendário (.ics)');
+    cal.type = 'button';
+    cal.disabled = !viagem.ida;
+    cal.title = viagem.ida ? 'Baixa um arquivo .ics para importar no Google Agenda, Outlook ou Apple Calendário. Os horários entram sem fuso: o calendário usa o fuso do seu aparelho.' : 'Informe a data de ida da viagem (Painel > Editar) para gerar o calendário.';
+    cal.addEventListener('click', exportarIcs);
+    acoes.appendChild(alt); acoes.appendChild(cal); acoes.appendChild(imp);
     var dados = secao('Dados da viagem', acoes);
     var grade = criar('div', 'resumo-dados');
     var itens = [
@@ -519,8 +741,7 @@
     var dd = secao('Dia a dia');
     for (var n = 1; n <= estado.dias; n++) {
       (function (n) {
-        var atvs = estado.atividades.filter(function (a) { return a.dia === n; })
-          .sort(function (a, b) { return (a.hora || '99:99').localeCompare(b.hora || '99:99'); });
+        var atvs = estado.atividades.filter(function (a) { return a.dia === n; });
         var bloco = criar('div', 'resumo-dia');
         var cab = criar('div', 'resumo-dia-cab');
         var tit = criar('strong', '', rotuloDia(n));
@@ -543,6 +764,7 @@
           linha.appendChild(criar('span', 'muted', ' · ' + a.tipo));
           corpo.appendChild(linha);
           if (resumoCompleto) {
+            if (a.endereco) corpo.appendChild(criar('div', 'muted', a.endereco));
             if (a.detalhe) corpo.appendChild(criar('div', 'muted', a.detalhe));
             if (a.custo > 0) corpo.appendChild(criar('div', 'muted', App.brl(a.custo)));
           }
@@ -553,6 +775,18 @@
       })(n);
     }
     r.appendChild(dd);
+
+    // Ideias sem dia
+    if (estado.ideias.length) {
+      var is = secao('Ideias sem dia');
+      estado.ideias.forEach(function (it) {
+        var l = criar('div', 'resumo-lemb');
+        l.appendChild(criar('span', 'resumo-caixa', '•'));
+        l.appendChild(criar('span', '', it.texto + (resumoCompleto && it.endereco ? ' · ' + it.endereco : '')));
+        is.appendChild(l);
+      });
+      r.appendChild(is);
+    }
 
     // Custos
     var cs = secao('Custos');
@@ -619,7 +853,10 @@
     if (resumo) { desenharResumo(); return; }
     $('tituloDia').textContent = rotuloDia(diaAtual);
     $('removerDia').classList.toggle('hidden', estado.dias <= 1);
+    $('moverEsq').disabled = diaAtual <= 1;
+    $('moverDir').disabled = diaAtual >= estado.dias;
     desenharLista();
+    desenharIdeias();
     desenharTotais();
     desenharCustos();
     desenharLembretes();
@@ -641,17 +878,18 @@
     ev.preventDefault();
     var titulo = $('ativTitulo').value.trim();
     if (!titulo) return;
-    estado.atividades.push({
-      id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    inserirAtividade({
+      id: novoId(),
       dia: diaAtual,
       hora: $('hora').value,
       tipo: $('tipo').value,
       titulo: titulo,
+      endereco: $('endereco').value.trim(),
       detalhe: $('detalhe').value.trim(),
       custo: App.num($('custo').value)
     });
     salvar();
-    ['hora', 'ativTitulo', 'detalhe', 'custo'].forEach(function (i) { $(i).value = ''; });
+    ['hora', 'ativTitulo', 'endereco', 'detalhe', 'custo'].forEach(function (i) { $(i).value = ''; });
     desenhar();
     $('ativTitulo').focus();
   });
