@@ -95,6 +95,46 @@
 
   function novoId() { return Date.now() + '-' + Math.random().toString(36).slice(2, 7); }
 
+  // ----- Horário de término (opcional) -----
+  function minutos(h) { var m = /^(\d{2}):(\d{2})$/.exec(h || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; }
+  // Início e fim em minutos; se o término for antes do início, termina no dia seguinte (soma 24h).
+  function intervalo(a) {
+    var ini = minutos(a.hora);
+    if (ini === null) return null;
+    var fim = minutos(a.horaFim);
+    if (fim !== null && fim <= ini) fim += 1440;
+    return { ini: ini, fim: fim };
+  }
+  function viraDia(a) { var i = minutos(a.hora), f = minutos(a.horaFim); return i !== null && f !== null && f < i; }
+  // Atividades do mesmo dia cujo horário se sobrepõe ao desta (só compara quando há término).
+  function sobrepostas(a) {
+    var x = intervalo(a);
+    if (!x) return [];
+    return estado.atividades.filter(function (b) {
+      if (b === a || b.dia !== a.dia) return false;
+      var y = intervalo(b);
+      if (!y) return false;
+      var xFim = x.fim === null ? x.ini : x.fim, yFim = y.fim === null ? y.ini : y.fim;
+      if (x.fim === null && y.fim === null) return false;
+      if (x.fim === null) return x.ini >= y.ini && x.ini < yFim;
+      if (y.fim === null) return y.ini >= x.ini && y.ini < xFim;
+      return x.ini < yFim && y.ini < xFim;
+    });
+  }
+  // Término só vale com horário de início e diferente dele.
+  function limparFim(hora, fim) { return hora && fim && fim !== hora ? fim : ''; }
+  // Liga/desliga o campo de término conforme o horário de início.
+  function ligarFim(idHora, idFim) {
+    function ajustar() {
+      var f = $(idFim);
+      f.disabled = !$(idHora).value;
+      if (f.disabled) f.value = '';
+    }
+    $(idHora).addEventListener('input', ajustar);
+    $(idHora).addEventListener('change', ajustar);
+    return ajustar;
+  }
+
   function trocar(a, dir) {
     var doDia = estado.atividades.filter(function (x) { return x.dia === a.dia; });
     var i = doDia.indexOf(a), j = i + dir;
@@ -113,7 +153,13 @@
 
     doDia.forEach(function (a, i) {
       var linha = criar('div', 'slot' + (i === 0 ? ' first' : ''));
-      linha.appendChild(criar('div', 'time', a.hora || '—'));
+      var tempo = criar('div', 'time', a.hora || '—');
+      if (a.hora && a.horaFim) {
+        var ate = criar('div', 'muted', 'até ' + a.horaFim + (viraDia(a) ? ' (+1)' : ''));
+        ate.style.cssText = 'font-size:12px;font-weight:500;white-space:nowrap';
+        tempo.appendChild(ate);
+      }
+      linha.appendChild(tempo);
       var corpo = criar('div', 'body');
       var topo = criar('div', '');
       topo.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;align-items:center';
@@ -125,6 +171,10 @@
       if (a.detalhe) extra.push(a.detalhe);
       if (a.custo > 0) extra.push(App.brl(a.custo));
       if (extra.length) corpo.appendChild(criar('span', 'muted', extra.join(' · ')));
+      var choques = sobrepostas(a);
+      if (choques.length) {
+        corpo.appendChild(criar('span', 't-aviso', 'Horário se sobrepõe a: ' + choques.map(function (b) { return b.titulo + ' (' + b.hora + (b.horaFim ? '–' + b.horaFim : '') + ')'; }).join(', ')));
+      }
 
       var acoes = criar('div', 'item-acoes');
       function botao(txt, rot, fn, desab) {
@@ -161,6 +211,7 @@
 
   // ----- Editar atividade (inclui mover para outro dia) -----
   var dlgAtiv = $('dlgAtiv'), ativEditando = null;
+  var ajustarEditaFim = ligarFim('eHora', 'eHoraFim');
   function abrirAtiv(a) {
     ativEditando = a;
     var sel = $('eDia');
@@ -168,6 +219,8 @@
     for (var n = 1; n <= estado.dias; n++) { var o = criar('option', '', rotuloDia(n)); o.value = String(n); sel.appendChild(o); }
     sel.value = String(a.dia);
     $('eHora').value = a.hora || '';
+    ajustarEditaFim();
+    $('eHoraFim').value = a.hora ? (a.horaFim || '') : '';
     $('eTipo').value = a.tipo;
     $('eCusto').value = a.custo > 0 ? a.custo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
     $('eTitulo').value = a.titulo;
@@ -184,6 +237,7 @@
     if (!a || !titulo) return;
     var novoDia = parseInt($('eDia').value, 10), novaHora = $('eHora').value;
     var reposicionar = novoDia !== a.dia || novaHora !== (a.hora || '');
+    a.horaFim = limparFim(novaHora, $('eHoraFim').value);
     a.dia = novoDia; a.hora = novaHora; a.tipo = $('eTipo').value; a.titulo = titulo;
     a.endereco = $('eEndereco').value.trim(); a.detalhe = $('eDetalhe').value.trim(); a.custo = App.num($('eCusto').value);
     if (reposicionar) { estado.atividades = estado.atividades.filter(function (x) { return x !== a; }); inserirAtividade(a); }
@@ -351,6 +405,37 @@
     desenharOrcamento($('orcBloco'), false);
   }
 
+  // ----- Passagem paga com milhas -----
+  // `valor` do custo é sempre o que entra na conta em R$ (a taxa, se a passagem foi abatida).
+  // `valorCheio` guarda o preço em dinheiro; `milhas` guarda programa, milhas, taxas e a origem da comparação.
+  function notaMilhas(c) {
+    var m = c.milhas;
+    if (!m || !(m.milhas > 0)) return '';
+    var base = App.inteiro(m.milhas) + ' milhas' + (m.programa ? ' ' + m.programa : '') + ' + ' + App.brl(m.taxas || 0) + ' de taxas';
+    if (!m.abatido) return 'Alternativa em milhas (não abatida): ' + base;
+    var t = 'Pago com milhas: ' + base + ' · passagem de ' + App.brl(c.valorCheio || 0) + ' abatida do total';
+    if (m.custoMilheiro > 0) t += ' · milhas ≈ ' + App.brl(m.milhas / 1000 * m.custoMilheiro) + ' (a R$ ' + fmt2(m.custoMilheiro) + ' o milheiro)';
+    return t;
+  }
+  // Soma do que foi abatido e das milhas usadas, por programa.
+  function resumoMilhas() {
+    var r = { abatido: 0, porPrograma: {}, qtd: 0 };
+    estado.custos.forEach(function (c) {
+      if (!c.milhas || !c.milhas.abatido || !(c.milhas.milhas > 0)) return;
+      r.qtd++;
+      r.abatido += (c.valorCheio || 0) - (c.valor || 0);
+      var p = c.milhas.programa || 'milhas';
+      r.porPrograma[p] = (r.porPrograma[p] || 0) + c.milhas.milhas;
+    });
+    return r;
+  }
+  function textoResumoMilhas() {
+    var r = resumoMilhas();
+    if (!r.qtd) return '';
+    var usadas = Object.keys(r.porPrograma).map(function (p) { return App.inteiro(r.porPrograma[p]) + ' ' + p; }).join(' · ');
+    return 'Milhas usadas: ' + usadas + ' · Abatido do total: ' + App.brl(r.abatido);
+  }
+
   // ----- Custos lançados (+) -----
   var dlgCusto = $('dlgCusto');
   var custoEditando = null;
@@ -377,6 +462,8 @@
       resumo.appendChild(k);
     });
     caixa.appendChild(resumo);
+    var tm = textoResumoMilhas();
+    if (tm) { var lm = criar('div', 'muted', tm); lm.style.cssText = 'margin-top:8px;font-size:13px'; caixa.appendChild(lm); }
     var orc = criar('div', '');
     orc.style.marginTop = '14px';
     caixa.appendChild(orc);
@@ -410,6 +497,8 @@
         var o = criar('td', ''); o.style.whiteSpace = 'normal';
         o.appendChild(criar('strong', '', c.origem));
         if (c.moeda && c.moeda !== 'BRL') { var mo = criar('div', 'muted', fmt2(c.valorMoeda) + ' ' + c.moeda + ' × R$ ' + String(c.cotacao).replace('.', ',')); mo.style.fontSize = '12px'; o.appendChild(mo); }
+        var nm = notaMilhas(c);
+        if (nm) { var nmEl = criar('div', 'muted', nm); nmEl.style.fontSize = '12px'; o.appendChild(nmEl); }
         if (c.obs) { var ob = criar('div', 'muted', c.obs); ob.style.fontSize = '12px'; o.appendChild(ob); }
         tr.appendChild(o);
         tr.appendChild(celula('td', c.data ? App.data(c.data) : '—'));
@@ -485,6 +574,62 @@
 
   function fmt2(n) { return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
+  // Bloco "Pagar com milhas": só para passagem aérea em R$.
+  var comparacaoSel = null; // origem da comparação copiada (nome, consulta, fonte, custo do milheiro)
+  App.programas.forEach(function (p) { var o = criar('option', '', p); $('cProg').appendChild(o); });
+
+  function comparacoesSalvas() { return App.ler('milhas_salvas', []).slice().reverse(); }
+  function preencherComparacoes() {
+    var sel = $('cComparacao'), lista = comparacoesSalvas();
+    sel.textContent = '';
+    var o0 = criar('option', '', lista.length ? '— não usar —' : 'Nenhuma comparação salva em Milhas x dinheiro');
+    o0.value = '';
+    sel.appendChild(o0);
+    lista.forEach(function (s) {
+      var o = criar('option', '', s.nome + ' · ' + s.prog + (s.consulta ? ' · consulta de ' + App.data(s.consulta) : ''));
+      o.value = s.id;
+      sel.appendChild(o);
+    });
+    sel.disabled = !lista.length;
+  }
+  function mostrarBlocoMilhas() {
+    var vis = $('cTipo').value === 'Passagem aérea' && moedaSel() === 'BRL';
+    $('cMilhasBox').classList.toggle('hidden', !vis);
+    return vis;
+  }
+  function atualizarAbater() {
+    var info = $('cAbaterInfo');
+    var cheio = App.num($('cValor').value), taxas = App.num($('cTaxas').value);
+    if ($('cAbater').checked && cheio > 0) {
+      info.textContent = 'No total entra só a taxa: ' + App.brl(taxas) + ' (abate ' + App.brl(Math.max(0, cheio - taxas)) + ').';
+      info.classList.remove('hidden');
+    } else info.classList.add('hidden');
+  }
+  $('cComparacao').addEventListener('change', function () {
+    var id = $('cComparacao').value, info = $('cCompInfo');
+    comparacaoSel = null;
+    if (!id) { info.classList.add('hidden'); return; }
+    var s = App.ler('milhas_salvas', []).filter(function (x) { return x.id === id; })[0];
+    if (!s) return;
+    comparacaoSel = { nome: s.nome, consulta: s.consulta || '', fonte: s.fonte || '' };
+    $('cValor').value = fmt2(s.dinheiro);
+    $('cMilhas').value = App.inteiro(s.milhas);
+    $('cTaxas').value = fmt2(s.taxas || 0);
+    $('cProg').value = s.prog;
+    if (!$('cOrigem').value.trim()) $('cOrigem').value = s.nome;
+    // Os dois cenários lado a lado; quem decide é você (marque a caixinha para pagar com milhas).
+    info.textContent = 'Copiado de "' + s.nome + '"' + (s.consulta ? ' (consulta de ' + App.data(s.consulta) + ')' : '') + (s.fonte ? ', fonte: ' + s.fonte : '') +
+      '. Dinheiro: ' + App.brl(s.dinheiro) + ' · Milhas: ' + App.inteiro(s.milhas) + ' + ' + App.brl(s.taxas || 0) + ' de taxas' +
+      (s.custo > 0 ? ' (milhas ≈ ' + App.brl(s.milhas / 1000 * s.custo) + ' a R$ ' + fmt2(s.custo) + ' o milheiro)' : '') + '.';
+    info.classList.remove('hidden');
+    comparacaoSel.custoMilheiro = s.custo > 0 ? s.custo : 0;
+    atualizarMoeda(); atualizarAbater();
+  });
+  ['cValor', 'cTaxas'].forEach(function (id) { $(id).addEventListener('input', atualizarAbater); });
+  $('cAbater').addEventListener('change', atualizarAbater);
+  $('cTipo').addEventListener('change', mostrarBlocoMilhas);
+  $('cMoeda').addEventListener('change', mostrarBlocoMilhas);
+
   function abrirCusto(c) {
     custoEditando = c || null;
     $('custoTitulo').textContent = c ? 'Editar custo' : 'Adicionar custo';
@@ -493,13 +638,25 @@
     $('cTipo').value = c ? c.tipo : 'Passagem aérea';
     var est = c && c.moeda && c.moeda !== 'BRL';
     $('cMoeda').value = est ? c.moeda : 'BRL';
-    $('cValor').value = c ? fmt2(est ? c.valorMoeda : c.valor) : '';
+    $('cValor').value = c ? fmt2(est ? c.valorMoeda : (c.valorCheio != null ? c.valorCheio : c.valor)) : '';
     $('cCot').value = est ? String(c.cotacao).replace('.', ',') : '';
     $('cData').value = c ? (c.data || '') : '';
     $('cSituacao').value = c ? c.situacao : 'Previsto';
     $('cObs').value = c ? (c.obs || '') : '';
     $('cErro').classList.add('hidden');
+    preencherComparacoes();
+    var m = c && c.milhas ? c.milhas : null;
+    comparacaoSel = m && m.comparacao ? { nome: m.comparacao.nome, consulta: m.comparacao.consulta, fonte: m.comparacao.fonte, custoMilheiro: m.custoMilheiro || 0 } : null;
+    $('cProg').value = m && m.programa ? m.programa : App.programas[0];
+    $('cMilhas').value = m && m.milhas > 0 ? App.inteiro(m.milhas) : '';
+    $('cTaxas').value = m && m.taxas != null ? fmt2(m.taxas) : '';
+    $('cAbater').checked = !!(m && m.abatido);
+    var ci = $('cCompInfo');
+    if (comparacaoSel) { ci.textContent = 'Baseado em "' + comparacaoSel.nome + '"' + (comparacaoSel.consulta ? ' (consulta de ' + App.data(comparacaoSel.consulta) + ')' : '') + (comparacaoSel.fonte ? ', fonte: ' + comparacaoSel.fonte : '') + '.'; ci.classList.remove('hidden'); }
+    else ci.classList.add('hidden');
     atualizarMoeda();
+    mostrarBlocoMilhas();
+    atualizarAbater();
     dlgCusto.showModal();
     $('cOrigem').focus();
   }
@@ -514,8 +671,19 @@
     if (!origem) { erro.textContent = 'Informe de onde vem o custo.'; erro.classList.remove('hidden'); return; }
     if (!(valorMoeda > 0)) { erro.textContent = 'Informe um valor maior que zero.'; erro.classList.remove('hidden'); return; }
     if (!(cot > 0)) { erro.textContent = 'Informe a cotação usada para converter em R$.'; erro.classList.remove('hidden'); return; }
-    var valor = Math.round(valorMoeda * cot * 100) / 100;
-    var dados = { origem: origem, tipo: $('cTipo').value, valor: valor, moeda: moeda, valorMoeda: valorMoeda, cotacao: cot, data: $('cData').value, situacao: $('cSituacao').value, obs: $('cObs').value.trim() };
+    var valorCheio = Math.round(valorMoeda * cot * 100) / 100;
+    var valor = valorCheio, milhas = null;
+    if (mostrarBlocoMilhas()) {
+      var qtd = App.num($('cMilhas').value), taxas = App.num($('cTaxas').value), abater = $('cAbater').checked;
+      if (abater && !(qtd > 0)) { erro.textContent = 'Informe as milhas usadas para abater a passagem.'; erro.classList.remove('hidden'); return; }
+      if (abater && !$('cTaxas').value.trim()) { erro.textContent = 'Informe as taxas em R$ (use 0 se não houver).'; erro.classList.remove('hidden'); return; }
+      if (qtd > 0) {
+        milhas = { programa: $('cProg').value, milhas: qtd, taxas: taxas, abatido: abater };
+        if (comparacaoSel) { milhas.comparacao = { nome: comparacaoSel.nome, consulta: comparacaoSel.consulta, fonte: comparacaoSel.fonte }; if (comparacaoSel.custoMilheiro > 0) milhas.custoMilheiro = comparacaoSel.custoMilheiro; }
+        if (abater) valor = Math.round(taxas * 100) / 100;
+      }
+    }
+    var dados = { origem: origem, tipo: $('cTipo').value, valor: valor, valorCheio: valorCheio, milhas: milhas, moeda: moeda, valorMoeda: valorMoeda, cotacao: cot, data: $('cData').value, situacao: $('cSituacao').value, obs: $('cObs').value.trim() };
     if (custoEditando) {
       Object.keys(dados).forEach(function (k) { custoEditando[k] = dados[k]; });
     } else {
@@ -674,7 +842,11 @@
     estado.atividades.forEach(function (a) {
       var data = App.somarDias(viagem.ida, a.dia - 1).replace(/-/g, '');
       var linhas = ['SUMMARY:' + icsTexto(a.titulo)];
-      if (a.hora) { linhas.push('DTSTART:' + data + 'T' + a.hora.replace(':', '') + '00', 'DURATION:PT1H'); }
+      if (a.hora && a.horaFim) {
+        var dataFim = viraDia(a) || a.horaFim === a.hora ? App.somarDias(viagem.ida, a.dia).replace(/-/g, '') : data;
+        linhas.push('DTSTART:' + data + 'T' + a.hora.replace(':', '') + '00', 'DTEND:' + dataFim + 'T' + a.horaFim.replace(':', '') + '00');
+      }
+      else if (a.hora) { linhas.push('DTSTART:' + data + 'T' + a.hora.replace(':', '') + '00', 'DURATION:PT1H'); }
       else linhas.push('DTSTART;VALUE=DATE:' + data);
       if (a.endereco) linhas.push('LOCATION:' + icsTexto(a.endereco));
       var desc = [a.tipo, a.detalhe].filter(Boolean).join(' · ');
@@ -766,7 +938,7 @@
           var corpo = criar('div', 'resumo-corpo');
           var linha = criar('div', '');
           linha.appendChild(criar('strong', '', a.titulo));
-          linha.appendChild(criar('span', 'muted', ' · ' + a.tipo));
+          linha.appendChild(criar('span', 'muted', ' · ' + a.tipo + (a.hora && a.horaFim ? ' · até ' + a.horaFim + (viraDia(a) ? ' (dia seguinte)' : '') : '')));
           corpo.appendChild(linha);
           if (resumoCompleto) {
             if (a.endereco) corpo.appendChild(criar('div', 'muted', a.endereco));
@@ -806,6 +978,8 @@
       kg.appendChild(k);
     });
     cs.appendChild(kg);
+    var tmr = textoResumoMilhas();
+    if (tmr) { var lmr = criar('div', 'muted', tmr); lmr.style.cssText = 'margin:6px 0 10px;font-size:13px'; cs.appendChild(lmr); }
     var porTipo = {};
     estado.custos.forEach(function (c) { (porTipo[c.tipo] = porTipo[c.tipo] || []).push(c); });
     Object.keys(porTipo).sort(function (a, b) {
@@ -819,7 +993,7 @@
       if (resumoCompleto) lista.forEach(function (c) {
         var d = criar('div', 'row');
         d.style.cssText = 'padding:3px 0 3px 16px;border-top:0';
-        d.appendChild(criar('span', 'muted', c.origem + ' · ' + c.situacao + (c.data ? ' · ' + App.data(c.data) : '') + (c.moeda && c.moeda !== 'BRL' ? ' · ' + fmt2(c.valorMoeda) + ' ' + c.moeda + ' × ' + String(c.cotacao).replace('.', ',') : '') + (c.obs ? ' · ' + c.obs : '')));
+        d.appendChild(criar('span', 'muted', c.origem + ' · ' + c.situacao + (c.data ? ' · ' + App.data(c.data) : '') + (c.moeda && c.moeda !== 'BRL' ? ' · ' + fmt2(c.valorMoeda) + ' ' + c.moeda + ' × ' + String(c.cotacao).replace('.', ',') : '') + (notaMilhas(c) ? ' · ' + notaMilhas(c) : '') + (c.obs ? ' · ' + c.obs : '')));
         d.appendChild(criar('span', 'muted', App.brl(c.valor)));
         cs.appendChild(d);
       });
@@ -881,6 +1055,7 @@
     salvar(); desenhar();
   });
 
+  var ajustarAddFim = ligarFim('hora', 'horaFim');
   $('form').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var titulo = $('ativTitulo').value.trim();
@@ -889,6 +1064,7 @@
       id: novoId(),
       dia: diaAtual,
       hora: $('hora').value,
+      horaFim: limparFim($('hora').value, $('horaFim').value),
       tipo: $('tipo').value,
       titulo: titulo,
       endereco: $('endereco').value.trim(),
@@ -896,7 +1072,8 @@
       custo: App.num($('custo').value)
     });
     salvar();
-    ['hora', 'ativTitulo', 'endereco', 'detalhe', 'custo'].forEach(function (i) { $(i).value = ''; });
+    ['hora', 'horaFim', 'ativTitulo', 'endereco', 'detalhe', 'custo'].forEach(function (i) { $(i).value = ''; });
+    ajustarAddFim();
     desenhar();
     $('ativTitulo').focus();
   });
