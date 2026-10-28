@@ -50,13 +50,21 @@
       if (!chaves.length) { aviso('O arquivo está vazio.'); return; }
       var quando = pacote.exportadoEm ? new Date(pacote.exportadoEm).toLocaleDateString('pt-BR') : 'data desconhecida';
       if (!confirm('Importar o backup de ' + quando + '?\n\nOs dados atuais deste navegador serão substituídos pelos do arquivo.')) return;
+      // Guarda uma cópia dos dados atuais para desfazer se algo falhar no meio.
+      var copia = {};
       try {
-        // Remove os dados atuais do programa e grava os do arquivo.
-        var antigas = [];
-        for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k.indexOf(PREFIXO) === 0) antigas.push(k); }
-        antigas.forEach(function (k) { localStorage.removeItem(k); });
+        for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k.indexOf(PREFIXO) === 0) copia[k] = localStorage.getItem(k); }
+        // Grava primeiro os dados do arquivo; só depois remove as chaves antigas que ele não traz.
         chaves.forEach(function (c) { localStorage.setItem(PREFIXO + c, JSON.stringify(pacote.dados[c])); });
-      } catch (e) { aviso('Não foi possível gravar os dados neste navegador.'); return; }
+        Object.keys(copia).forEach(function (k) { if (!Object.prototype.hasOwnProperty.call(pacote.dados, k.slice(PREFIXO.length))) localStorage.removeItem(k); });
+      } catch (e) {
+        try {
+          Object.keys(copia).forEach(function (k) { localStorage.setItem(k, copia[k]); });
+          chaves.forEach(function (c) { if (!copia[PREFIXO + c]) localStorage.removeItem(PREFIXO + c); });
+        } catch (e2) { /* sem como desfazer */ }
+        aviso('Não foi possível gravar os dados neste navegador. Os dados anteriores foram mantidos.');
+        return;
+      }
       location.reload();
     };
     leitor.readAsText(f);

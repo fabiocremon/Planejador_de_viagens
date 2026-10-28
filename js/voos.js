@@ -5,7 +5,7 @@
   var buscas = App.ler('voos', []);
   function $(id) { return document.getElementById(id); }
   function salvar() { App.gravar('voos', buscas); }
-  function hoje() { return new Date().toISOString().slice(0, 10); }
+  function hoje() { return App.hojeISO(); }
 
   function criar(tag, classe, texto) {
     var e = document.createElement(tag);

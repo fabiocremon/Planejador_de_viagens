@@ -78,7 +78,7 @@
     if (v.milhas > 0 && s && s.saldo && App.num(s.saldo) < v.milhas) {
       aviso.textContent = 'Seu saldo registrado em ' + el.prog.value + ' (' + App.inteiro(App.num(s.saldo)) + ') é menor que as milhas necessárias.';
       aviso.classList.remove('hidden');
-    } else if (v.milhas > 0 && s && s.validade && s.validade < new Date().toISOString().slice(0, 10)) {
+    } else if (v.milhas > 0 && s && s.validade && s.validade < App.hojeISO()) {
       aviso.textContent = 'A validade registrada para ' + el.prog.value + ' (' + App.data(s.validade) + ') já passou.';
       aviso.classList.remove('hidden');
     } else {
@@ -212,7 +212,7 @@
       dinheiro: v.dinheiro, milhas: v.milhas, taxas: v.taxas, custo: v.custo,
       custoMilhas: r.custoMilhas, economia: r.economia, valorMilheiro: r.valorMilheiro,
       fonte: el.fonte.value.trim(), consulta: el.consulta.value,
-      salvoEm: new Date().toISOString().slice(0, 10),
+      salvoEm: App.hojeISO(),
       campos: { din: el.din.value, mil: el.mil.value, tax: el.tax.value, cus: el.cus.value }
     });
     App.gravar('milhas_salvas', salvas);

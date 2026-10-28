@@ -8,7 +8,7 @@
     if (texto != null) e.textContent = texto;
     return e;
   }
-  function hoje() { return new Date().toISOString().slice(0, 10); }
+  function hoje() { return App.hojeISO(); }
 
   // =====================================================================
   // Viagens salvas (criar, editar, abrir). Cada viagem guarda dados + roteiro.
@@ -409,6 +409,7 @@
     var alvo = $('saldos');
     alvo.textContent = '';
     var lista = OPS.filter(incluido);
+    $('semSaldos').textContent = 'Nenhum programa incluído ainda.';
     $('semSaldos').classList.toggle('hidden', lista.length > 0);
     lista.forEach(function (nome, i) {
       var s = saldos[nome];
@@ -438,6 +439,7 @@
     sel.textContent = '';
     var opcoes = nome ? [nome] : OPS.filter(function (n) { return !incluido(n); });
     if (!opcoes.length) { $('semSaldos').textContent = 'Todos os programas já foram incluídos.'; $('semSaldos').classList.remove('hidden'); return; }
+    desenharSaldos(); // restaura a mensagem padrão se um aviso anterior ficou na tela
     opcoes.forEach(function (n) { sel.appendChild(criar('option', '', n)); });
     sel.disabled = !!nome;
     var s = nome ? saldos[nome] : {};

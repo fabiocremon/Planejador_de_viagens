@@ -16,7 +16,11 @@
     },
     // Converte texto em formato brasileiro ("2.400,50") para número.
     num: function (texto) {
-      var s = String(texto == null ? '' : texto).trim().replace(/\./g, '').replace(',', '.');
+      // Com vírgula: o ponto é milhar ("1.234,50"). Sem vírgula: "2.500" e "1.234.567" são milhar;
+      // "2.5" e "0.5" são decimais (hábito de teclado).
+      var s = String(texto == null ? '' : texto).trim();
+      if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+      else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
       var n = parseFloat(s);
       return isFinite(n) ? n : 0;
     },
