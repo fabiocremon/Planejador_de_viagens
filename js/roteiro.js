@@ -75,6 +75,39 @@
     return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
   }
 
+  // ----- Valor por pessoa x quem participa -----
+  // O valor é sempre digitado POR PESSOA. `quem`: 'grupo' (todos da viagem, padrão), 'um' (1 pessoa) ou 'parte' (qtd pessoas).
+  // Atividade: `custo` = total do grupo (é ele que entra em todas as contas); `custoPessoa` = valor digitado.
+  // Lançamentos antigos (sem `quem`) não são mexidos: o valor deles continua sendo o total.
+  function arred(n) { return Math.round(n * 100) / 100; }
+  function grupoN() { var n = parseInt(viagem.pessoas, 10); return n > 0 ? n : 1; }
+  function nPessoas(x) {
+    if (x.quem === 'um') return 1;
+    if (x.quem === 'parte') return Math.max(1, parseInt(x.qtd, 10) || 1);
+    return grupoN();
+  }
+  function nItem(x) { return x.quem ? nPessoas(x) : 1; }
+  function pessoasTxt(n) { return n + (n === 1 ? ' pessoa' : ' pessoas'); }
+  function recalcAtiv(a) {
+    if (!a.quem) return false;
+    var n = nPessoas(a), antes = a.custo;
+    a.custoCheio = arred((a.custoPessoa || 0) * n);
+    a.custo = a.milhas && a.milhas.abatido ? arred((a.milhas.taxas || 0) * n) : a.custoCheio;
+    return a.custo !== antes;
+  }
+  function recalcCusto(c) {
+    if (!c.quem) return false;
+    var n = nPessoas(c), antes = c.valor;
+    c.valorMoeda = (c.valorPessoa || 0) * n;
+    c.valor = arred(c.valorMoeda * (c.cotacao || 1));
+    return c.valor !== antes;
+  }
+  // Se o número de pessoas da viagem mudou, os totais "Todo o grupo" se ajustam ao abrir.
+  var recalculou = false;
+  estado.atividades.forEach(function (a) { if (recalcAtiv(a)) recalculou = true; });
+  estado.custos.forEach(function (c) { if (recalcCusto(c)) recalculou = true; });
+  if (recalculou) App.salvarRoteiro(estado);
+
   // Coloca a atividade no dia certo, respeitando o horário (sem horário vai para o fim do dia).
   function inserirAtividade(nova) {
     var pos = -1;
@@ -169,7 +202,7 @@
       if (a.endereco) corpo.appendChild(criar('span', 'muted', a.endereco));
       var extra = [];
       if (a.detalhe) extra.push(a.detalhe);
-      if (a.custo > 0) extra.push(App.brl(a.custo));
+      if (a.custo > 0) extra.push(textoCusto(a));
       if (extra.length) corpo.appendChild(criar('span', 'muted', extra.join(' · ')));
       if (notaMilhas(a)) corpo.appendChild(criar('span', 'muted', notaMilhas(a)));
       var choques = sobrepostas(a);
@@ -213,7 +246,9 @@
   // ----- Editar atividade (inclui mover para outro dia) -----
   var dlgAtiv = $('dlgAtiv'), ativEditando = null;
   var ajustarEditaFim = ligarFim('eHora', 'eHoraFim');
-  var milhasEdita = criarBlocoMilhas($('milhasEdita'), 'em', 'eTipo', 'eCusto');
+  var milhasEdita;
+  var quemEdita = criarQuem($('quemEdita'), 'qe', 'eCusto', { rotuloPessoa: 'Custo por pessoa (R$)', rotuloTotal: 'Custo total do grupo (R$)', aoMudar: function () { if (milhasEdita) milhasEdita.atualizar(); } });
+  milhasEdita = criarBlocoMilhas($('milhasEdita'), 'em', 'eTipo', 'eCusto', quemEdita);
   function abrirAtiv(a) {
     ativEditando = a;
     var sel = $('eDia');
@@ -224,8 +259,9 @@
     ajustarEditaFim();
     $('eHoraFim').value = a.hora ? (a.horaFim || '') : '';
     $('eTipo').value = a.tipo;
-    var base = a.custoCheio > 0 ? a.custoCheio : a.custo;
-    $('eCusto').value = base > 0 ? base.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    var base = a.quem ? a.custoPessoa : (a.custoCheio > 0 ? a.custoCheio : a.custo);
+    $('eCusto').value = base > 0 ? fmt2(base) : '';
+    quemEdita.abrir(a);
     milhasEdita.abrir(a);
     $('eTitulo').value = a.titulo;
     $('eEndereco').value = a.endereco || '';
@@ -239,6 +275,8 @@
     var a = ativEditando;
     var titulo = $('eTitulo').value.trim();
     if (!a || !titulo) return;
+    var qq = quemEdita.ler();
+    if (qq.erro) return;
     var mm = milhasEdita.ler();
     if (mm.erro) return;
     var novoDia = parseInt($('eDia').value, 10), novaHora = $('eHora').value;
@@ -246,7 +284,8 @@
     a.horaFim = limparFim(novaHora, $('eHoraFim').value);
     a.dia = novoDia; a.hora = novaHora; a.tipo = $('eTipo').value; a.titulo = titulo;
     a.endereco = $('eEndereco').value.trim(); a.detalhe = $('eDetalhe').value.trim();
-    a.custo = mm.custo; a.custoCheio = mm.custoCheio; a.milhas = mm.milhas;
+    a.quem = qq.quem; a.qtd = qq.qtd; a.custoPessoa = qq.valorPessoa; a.milhas = mm.milhas;
+    recalcAtiv(a);
     if (reposicionar) { estado.atividades = estado.atividades.filter(function (x) { return x !== a; }); inserirAtividade(a); }
     salvar(); dlgAtiv.close();
     if (novoDia !== diaAtual) diaAtual = novoDia;
@@ -413,15 +452,29 @@
   }
 
   // ----- Voo pago com milhas -----
-  // Na atividade do tipo Voo: `custo` é sempre o que entra na conta em R$ (só as taxas, se a passagem foi abatida).
-  // `custoCheio` guarda o preço em dinheiro; `milhas` guarda programa, milhas, taxas e a origem da comparação.
+  // Milhas e taxas são digitadas por pessoa; o total usa o número de participantes da atividade.
+  // `custo` = o que entra na conta em R$ (só as taxas, se a passagem foi abatida); `custoCheio` = preço total em dinheiro.
+  function textoCusto(a) {
+    if (!a.quem || (a.milhas && a.milhas.abatido)) return App.brl(a.custo);
+    var n = nPessoas(a);
+    return n === 1 ? App.brl(a.custo) : App.brl(a.custoPessoa) + ' × ' + pessoasTxt(n) + ' = ' + App.brl(a.custo);
+  }
+  // Ex.: "R$ 80,00 por pessoa × 2 pessoas (todo o grupo)". Vazio quando não há o que explicar.
+  function textoPessoas(x, pp, moeda) {
+    if (!x.quem) return '';
+    var n = nPessoas(x);
+    if (n === 1 && grupoN() === 1) return '';
+    var v = moeda && moeda !== 'BRL' ? fmt2(pp) + ' ' + moeda : App.brl(pp);
+    return v + ' por pessoa × ' + pessoasTxt(n) + (x.quem === 'parte' ? ' (parte do grupo)' : x.quem === 'grupo' ? ' (todo o grupo)' : '');
+  }
   function notaMilhas(a) {
     var m = a.milhas;
     if (!m || !(m.milhas > 0)) return '';
-    var base = App.inteiro(m.milhas) + ' milhas' + (m.programa ? ' ' + m.programa : '') + ' + ' + App.brl(m.taxas || 0) + ' de taxas';
+    var n = nItem(a);
+    var base = App.inteiro(m.milhas * n) + ' milhas' + (n > 1 ? ' (' + App.inteiro(m.milhas) + ' × ' + n + ')' : '') + (m.programa ? ' ' + m.programa : '') + ' + ' + App.brl((m.taxas || 0) * n) + ' de taxas';
     if (!m.abatido) return 'Alternativa em milhas (não abatida): ' + base;
     var t = 'Pago com milhas: ' + base + ' · passagem de ' + App.brl(a.custoCheio || 0) + ' abatida do total';
-    if (m.custoMilheiro > 0) t += ' · milhas ≈ ' + App.brl(m.milhas / 1000 * m.custoMilheiro) + ' (a R$ ' + fmt2(m.custoMilheiro) + ' o milheiro)';
+    if (m.custoMilheiro > 0) t += ' · milhas ≈ ' + App.brl(m.milhas * n / 1000 * m.custoMilheiro) + ' (a R$ ' + fmt2(m.custoMilheiro) + ' o milheiro)';
     return t;
   }
   // Soma do que foi abatido e das milhas usadas, por programa.
@@ -432,7 +485,7 @@
       r.qtd++;
       r.abatido += (a.custoCheio || 0) - (a.custo || 0);
       var p = a.milhas.programa || 'milhas';
-      r.porPrograma[p] = (r.porPrograma[p] || 0) + a.milhas.milhas;
+      r.porPrograma[p] = (r.porPrograma[p] || 0) + a.milhas.milhas * nItem(a);
     });
     return r;
   }
@@ -443,9 +496,104 @@
     return 'Milhas usadas: ' + usadas + ' · Abatido do total: ' + App.brl(r.abatido);
   }
 
+  // Escolha de quem participa (Todo o grupo / 1 pessoa / Parte do grupo) + link "Tenho o total do grupo".
+  // idValor: campo onde se digita o valor. opc: { rotuloPessoa, rotuloTotal, moeda(), aoMudar() }.
+  function criarQuem(caixa, pref, idValor, opc) {
+    opc = opc || {};
+    var modoTotal = false;
+    var el = criar('div', 'field'); el.style.gap = '8px';
+    el.appendChild(criar('strong', '', 'Quem participa'));
+    var linha = criar('div', ''); linha.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center';
+    var radios = {}, rotGrupo = null;
+    [['grupo', ''], ['um', '1 pessoa'], ['parte', 'Parte do grupo']].forEach(function (o) {
+      var l = criar('label', 'lemb-check'); l.setAttribute('for', pref + 'Quem-' + o[0]);
+      l.style.alignItems = 'center';
+      var r = criar('input', ''); r.type = 'radio'; r.name = pref + 'Quem'; r.value = o[0]; r.id = pref + 'Quem-' + o[0];
+      var t = criar('span', '', o[1]);
+      if (o[0] === 'grupo') rotGrupo = t;
+      l.appendChild(r); l.appendChild(t); linha.appendChild(l); radios[o[0]] = r;
+    });
+    el.appendChild(linha);
+    var fq = criar('div', 'field hidden'); fq.style.maxWidth = '200px';
+    var lq = criar('label', '', 'Quantas pessoas?'); lq.setAttribute('for', pref + 'Qtd');
+    var iq = criar('input', ''); iq.type = 'number'; iq.min = '1'; iq.step = '1'; iq.id = pref + 'Qtd'; iq.setAttribute('inputmode', 'numeric');
+    fq.appendChild(lq); fq.appendChild(iq); el.appendChild(fq);
+    var linhaTotal = criar('div', ''); linhaTotal.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;align-items:center';
+    var bt = criar('button', 'btn link', 'Tenho o total do grupo'); bt.type = 'button';
+    linhaTotal.appendChild(bt);
+    var prev = criar('span', 'hint hidden', ''); prev.setAttribute('role', 'status'); linhaTotal.appendChild(prev);
+    el.appendChild(linhaTotal);
+    var semPessoas = criar('span', 'hint hidden', 'A viagem ainda não tem o número de pessoas; usando 1. Informe em Painel > Editar viagem.');
+    el.appendChild(semPessoas);
+    var erro = criar('span', 't-alerta hidden', ''); erro.setAttribute('role', 'alert'); el.appendChild(erro);
+    caixa.appendChild(el);
+
+    function quem() { return radios.um.checked ? 'um' : radios.parte.checked ? 'parte' : 'grupo'; }
+    function n() {
+      var q = quem();
+      if (q === 'um') return 1;
+      if (q === 'parte') return Math.max(1, parseInt(iq.value, 10) || 1);
+      return grupoN();
+    }
+    function digitado() { return App.num($(idValor).value); }
+    function valorPessoa() { var v = digitado(); return Math.round((modoTotal ? v / n() : v) * 10000) / 10000; }
+    function moeda() { return opc.moeda ? opc.moeda() : 'BRL'; }
+    function fm(x) { return moeda() === 'BRL' ? App.brl(x) : fmt2(x) + ' ' + moeda(); }
+    function rotular() {
+      rotGrupo.textContent = 'Todo o grupo (' + pessoasTxt(grupoN()) + ')';
+      semPessoas.classList.toggle('hidden', !!(parseInt(viagem.pessoas, 10) > 0));
+      var rot = document.querySelector('label[for="' + idValor + '"]');
+      if (rot && opc.rotuloPessoa) rot.textContent = modoTotal ? opc.rotuloTotal : opc.rotuloPessoa;
+      bt.textContent = modoTotal ? 'Voltar para valor por pessoa' : 'Tenho o total do grupo';
+    }
+    function atualizar() {
+      fq.classList.toggle('hidden', quem() !== 'parte');
+      erro.classList.add('hidden');
+      var v = digitado(), k = n();
+      if (!(v > 0)) prev.classList.add('hidden');
+      else if (modoTotal) { prev.textContent = 'Por pessoa: ' + fm(v / k) + ' (total ÷ ' + pessoasTxt(k) + ')'; prev.classList.remove('hidden'); }
+      else if (k > 1) { prev.textContent = 'Total: ' + fm(v * k) + ' (' + fm(v) + ' × ' + pessoasTxt(k) + ')'; prev.classList.remove('hidden'); }
+      else prev.classList.add('hidden');
+      rotular();
+      if (opc.aoMudar) opc.aoMudar(modoTotal);
+    }
+    Object.keys(radios).forEach(function (k) { radios[k].addEventListener('change', atualizar); });
+    iq.addEventListener('input', atualizar);
+    $(idValor).addEventListener('input', atualizar);
+    bt.addEventListener('click', function () {
+      var v = digitado(), k = n();
+      if (v > 0) $(idValor).value = fmt2(modoTotal ? v / k : v * k);
+      modoTotal = !modoTotal;
+      atualizar();
+    });
+
+    return {
+      // x: item em edição (ou null). Item antigo, sem `quem`, abre em "total do grupo" para o valor não mudar.
+      abrir: function (x) {
+        modoTotal = !!(x && !x.quem);
+        var q = x && x.quem ? x.quem : 'grupo';
+        radios[q].checked = true;
+        iq.value = x && x.quem === 'parte' ? String(x.qtd || '') : '';
+        atualizar();
+      },
+      ler: function () {
+        var q = quem();
+        if (q === 'parte') {
+          var k = parseInt(iq.value, 10), g = grupoN();
+          if (!(k >= 1)) { erro.textContent = 'Informe quantas pessoas participam.'; erro.classList.remove('hidden'); return { erro: true }; }
+          if (k > g) { erro.textContent = 'O grupo da viagem tem ' + pessoasTxt(g) + '. Use um número até ' + g + '.'; erro.classList.remove('hidden'); return { erro: true }; }
+        }
+        return { quem: q, qtd: q === 'parte' ? parseInt(iq.value, 10) : undefined, valorPessoa: valorPessoa() };
+      },
+      n: n, valorPessoa: valorPessoa, atualizar: atualizar,
+      modoTotal: function () { return modoTotal; },
+      desligarTotal: function () { modoTotal = false; }
+    };
+  }
+
   // Bloco "Pagar com milhas" mostrado só quando o tipo da atividade é Voo (formulário de adicionar e de editar).
-  // Copia os valores de uma comparação salva em Milhas x dinheiro; a caixinha abate a passagem do total.
-  function criarBlocoMilhas(caixa, pref, idTipo, idCusto) {
+  // Copia os valores de uma comparação salva em Milhas x dinheiro (por passageiro); a caixinha abate a passagem do total.
+  function criarBlocoMilhas(caixa, pref, idTipo, idCusto, qm) {
     var comp = null; // origem da comparação copiada
     var el = criar('div', 'field hidden');
     el.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;gap:10px';
@@ -455,7 +603,7 @@
     var lComp = criar('label', '', 'Usar uma comparação salva em Milhas x dinheiro'); lComp.setAttribute('for', pref + 'Comp');
     var sComp = criar('select', ''); sComp.id = pref + 'Comp';
     fComp.appendChild(lComp); fComp.appendChild(sComp);
-    fComp.appendChild(criar('span', 'hint', 'Os valores são copiados para esta atividade. Depois você pode editar à mão.'));
+    fComp.appendChild(criar('span', 'hint', 'Os valores são copiados, por passageiro, e multiplicados por quem participa. Depois você pode editar à mão.'));
     el.appendChild(fComp);
     var info = criar('span', 'hint hidden', ''); info.setAttribute('role', 'status'); el.appendChild(info);
 
@@ -466,8 +614,8 @@
     }
     var sProg = campo('Programa', pref + 'Prog', criar('select', ''));
     App.programas.forEach(function (p) { sProg.appendChild(criar('option', '', p)); });
-    var iMil = campo('Milhas', pref + 'Milhas', criar('input', '')); iMil.setAttribute('inputmode', 'numeric'); iMil.placeholder = 'ex.: 60.000'; iMil.autocomplete = 'off';
-    var iTax = campo('Taxas (R$)', pref + 'Taxas', criar('input', '')); iTax.setAttribute('inputmode', 'decimal'); iTax.placeholder = 'ex.: 180,00'; iTax.autocomplete = 'off';
+    var iMil = campo('Milhas por pessoa', pref + 'Milhas', criar('input', '')); iMil.setAttribute('inputmode', 'numeric'); iMil.placeholder = 'ex.: 60.000'; iMil.autocomplete = 'off';
+    var iTax = campo('Taxas por pessoa (R$)', pref + 'Taxas', criar('input', '')); iTax.setAttribute('inputmode', 'decimal'); iTax.placeholder = 'ex.: 180,00'; iTax.autocomplete = 'off';
     el.appendChild(grade);
 
     var rot = criar('label', 'lemb-check'); rot.setAttribute('for', pref + 'Abater');
@@ -478,12 +626,12 @@
     var erro = criar('span', 't-alerta hidden', ''); erro.setAttribute('role', 'alert'); el.appendChild(erro);
     caixa.appendChild(el);
 
-    function custoDigitado() { return App.num($(idCusto).value); }
     function visivel() { return $(idTipo).value === 'Voo'; }
     function atualizarAviso() {
-      var cheio = custoDigitado(), taxas = App.num(iTax.value);
-      if (cb.checked && cheio > 0) {
-        aviso.textContent = 'No total entra só a taxa: ' + App.brl(taxas) + ' (abate ' + App.brl(Math.max(0, cheio - taxas)) + ').';
+      var pp = qm.valorPessoa(), taxas = App.num(iTax.value), k = qm.n();
+      if (cb.checked && pp > 0) {
+        aviso.textContent = 'No total entra só a taxa: ' + App.brl(taxas * k) + (k > 1 ? ' (' + App.brl(taxas) + ' × ' + pessoasTxt(k) + ')' : '') +
+          ' · abate ' + App.brl(Math.max(0, pp - taxas) * k) + '. Milhas usadas: ' + App.inteiro(App.num(iMil.value) * k) + '.';
         aviso.classList.remove('hidden');
       } else aviso.classList.add('hidden');
       erro.classList.add('hidden');
@@ -509,18 +657,21 @@
       var c = App.ler('milhas_salvas', []).filter(function (x) { return x.id === sComp.value; })[0];
       if (!c) { info.classList.add('hidden'); return; }
       comp = { nome: c.nome, consulta: c.consulta || '', fonte: c.fonte || '', custoMilheiro: c.custo > 0 ? c.custo : 0 };
+      qm.desligarTotal();
       $(idCusto).value = fmt2(c.dinheiro);
       iMil.value = App.inteiro(c.milhas);
       iTax.value = fmt2(c.taxas || 0);
       sProg.value = c.prog;
-      // Os dois cenários lado a lado; quem decide é você (marque a caixinha para pagar com milhas).
+      qm.atualizar();
+      // Os dois cenários lado a lado (por passageiro); quem decide é você (marque a caixinha para pagar com milhas).
       info.textContent = 'Copiado de "' + c.nome + '"' + (c.consulta ? ' (consulta de ' + App.data(c.consulta) + ')' : '') + (c.fonte ? ', fonte: ' + c.fonte : '') +
-        '. Dinheiro: ' + App.brl(c.dinheiro) + ' · Milhas: ' + App.inteiro(c.milhas) + ' + ' + App.brl(c.taxas || 0) + ' de taxas' +
+        '. Por passageiro, dinheiro: ' + App.brl(c.dinheiro) + ' · milhas: ' + App.inteiro(c.milhas) + ' + ' + App.brl(c.taxas || 0) + ' de taxas' +
         (c.custo > 0 ? ' (milhas ≈ ' + App.brl(c.milhas / 1000 * c.custo) + ' a R$ ' + fmt2(c.custo) + ' o milheiro)' : '') + '.';
       info.classList.remove('hidden');
       atualizarAviso();
     });
-    [$(idCusto), iTax].forEach(function (i) { i.addEventListener('input', atualizarAviso); });
+    iTax.addEventListener('input', atualizarAviso);
+    iMil.addEventListener('input', atualizarAviso);
     cb.addEventListener('change', atualizarAviso);
     $(idTipo).addEventListener('change', atualizarVisibilidade);
 
@@ -536,19 +687,18 @@
         cb.checked = !!(m && m.abatido);
         textoOrigem(); atualizarVisibilidade(); atualizarAviso();
       },
-      // Lê o bloco. Devolve { erro: true } se faltar algo, ou { milhas: objeto|null, custo, custoCheio }.
+      // Lê o bloco. Devolve { erro: true } se faltar algo, ou { milhas: objeto|null } (milhas e taxas por pessoa).
       ler: function () {
-        var cheio = custoDigitado();
-        if (!visivel()) return { milhas: null, custo: cheio, custoCheio: cheio };
-        var qtd = App.num(iMil.value), taxas = App.num(iTax.value), abater = cb.checked;
+        if (!visivel()) return { milhas: null };
+        var pp = qm.valorPessoa(), qtd = App.num(iMil.value), taxas = App.num(iTax.value), abater = cb.checked;
         function falha(t) { erro.textContent = t; erro.classList.remove('hidden'); return { erro: true }; }
         if (abater && !(qtd > 0)) return falha('Informe as milhas usadas para abater a passagem.');
         if (abater && !iTax.value.trim()) return falha('Informe as taxas em R$ (use 0 se não houver).');
-        if (abater && !(cheio > 0)) return falha('Informe o custo em R$ da passagem (campo Custo) para poder abatê-lo.');
-        if (!(qtd > 0)) return { milhas: null, custo: cheio, custoCheio: cheio };
+        if (abater && !(pp > 0)) return falha('Informe o custo da passagem (campo Custo) para poder abatê-lo.');
+        if (!(qtd > 0)) return { milhas: null };
         var m = { programa: sProg.value, milhas: qtd, taxas: taxas, abatido: abater };
         if (comp) { m.comparacao = { nome: comp.nome, consulta: comp.consulta, fonte: comp.fonte }; if (comp.custoMilheiro > 0) m.custoMilheiro = comp.custoMilheiro; }
-        return { milhas: m, custo: abater ? Math.round(taxas * 100) / 100 : cheio, custoCheio: cheio };
+        return { milhas: m };
       },
       atualizar: function () { atualizarVisibilidade(); atualizarAviso(); }
     };
@@ -615,6 +765,8 @@
         var o = criar('td', ''); o.style.whiteSpace = 'normal';
         o.appendChild(criar('strong', '', c.origem));
         if (c.moeda && c.moeda !== 'BRL') { var mo = criar('div', 'muted', fmt2(c.valorMoeda) + ' ' + c.moeda + ' × R$ ' + String(c.cotacao).replace('.', ',')); mo.style.fontSize = '12px'; o.appendChild(mo); }
+        var npc = textoPessoas(c, c.valorPessoa, c.moeda);
+        if (npc) { var npcEl = criar('div', 'muted', npc); npcEl.style.fontSize = '12px'; o.appendChild(npcEl); }
         if (c.obs) { var ob = criar('div', 'muted', c.obs); ob.style.fontSize = '12px'; o.appendChild(ob); }
         tr.appendChild(o);
         tr.appendChild(celula('td', c.data ? App.data(c.data) : '—'));
@@ -655,6 +807,8 @@
       comCusto.slice().sort(function (a, b) { return a.dia - b.dia || (a.hora || '').localeCompare(b.hora || ''); }).forEach(function (a) {
         var tr = criar('tr', '');
         var o = criar('td', ''); o.style.whiteSpace = 'normal'; o.appendChild(criar('strong', '', a.titulo));
+        var np = (a.milhas && a.milhas.abatido) ? '' : textoPessoas(a, a.custoPessoa, 'BRL');
+        if (np) { var npEl = criar('div', 'muted', np); npEl.style.fontSize = '12px'; o.appendChild(npEl); }
         if (notaMilhas(a)) { var nm = criar('div', 'muted', notaMilhas(a)); nm.style.fontSize = '12px'; o.appendChild(nm); }
         tr.appendChild(o);
         tr.appendChild(celula('td', rotuloDia(a.dia)));
@@ -677,18 +831,21 @@
   $('custosFechar').addEventListener('click', function () { dlgCustos.close(); });
 
   function moedaSel() { return $('cMoeda').value; }
+  var quemCusto = criarQuem($('quemCusto'), 'qc', 'cValor', { moeda: moedaSel, aoMudar: function () { atualizarMoeda(); } });
   function atualizarMoeda() {
     var m = moedaSel(), estrangeira = m !== 'BRL';
     $('cCotBox').classList.toggle('hidden', !estrangeira);
     $('cMoedaNome').textContent = m;
-    $('cValorRot').textContent = 'Valor (' + (estrangeira ? m : 'R$') + ')';
-    var v = App.num($('cValor').value), cot = App.num($('cCot').value);
+    $('cValorRot').textContent = (quemCusto && quemCusto.modoTotal() ? 'Valor total do grupo (' : 'Valor por pessoa (') + (estrangeira ? m : 'R$') + ')';
+    var cot = App.num($('cCot').value);
+    var pp = quemCusto ? quemCusto.valorPessoa() : App.num($('cValor').value), k = quemCusto ? quemCusto.n() : 1;
     var conv = $('cConv');
-    if (estrangeira && v > 0 && cot > 0) { conv.textContent = 'Equivale a ' + App.brl(Math.round(v * cot * 100) / 100) + ' (cotação informada por você).'; conv.classList.remove('hidden'); }
+    if (estrangeira && pp > 0 && cot > 0) { conv.textContent = 'Equivale a ' + App.brl(arred(pp * cot)) + ' por pessoa' + (k > 1 ? ' (' + App.brl(arred(pp * cot * k)) + ' no total)' : '') + ' (cotação informada por você).'; conv.classList.remove('hidden'); }
     else conv.classList.add('hidden');
   }
   ['cMoeda', 'cValor', 'cCot'].forEach(function (id) { $(id).addEventListener('input', atualizarMoeda); });
-  $('cMoeda').addEventListener('change', atualizarMoeda);
+  $('cMoeda').addEventListener('change', function () { quemCusto.atualizar(); });
+  $('cCot').addEventListener('input', function () { quemCusto.atualizar(); });
 
   function fmt2(n) { return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
@@ -700,12 +857,13 @@
     $('cTipo').value = c ? c.tipo : 'Passagem aérea';
     var est = c && c.moeda && c.moeda !== 'BRL';
     $('cMoeda').value = est ? c.moeda : 'BRL';
-    $('cValor').value = c ? fmt2(est ? c.valorMoeda : c.valor) : '';
+    $('cValor').value = c ? fmt2(c.quem ? c.valorPessoa : (est ? c.valorMoeda : c.valor)) : '';
     $('cCot').value = est ? String(c.cotacao).replace('.', ',') : '';
     $('cData').value = c ? (c.data || '') : '';
     $('cSituacao').value = c ? c.situacao : 'Previsto';
     $('cObs').value = c ? (c.obs || '') : '';
     $('cErro').classList.add('hidden');
+    quemCusto.abrir(c);
     atualizarMoeda();
     dlgCusto.showModal();
     $('cOrigem').focus();
@@ -715,14 +873,16 @@
   $('formCusto').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var origem = $('cOrigem').value.trim();
-    var valorMoeda = App.num($('cValor').value);
+    var qq = quemCusto.ler();
+    if (qq.erro) return;
+    var valorMoeda = qq.valorPessoa;
     var moeda = moedaSel(), cot = moeda === 'BRL' ? 1 : App.num($('cCot').value);
     var erro = $('cErro');
     if (!origem) { erro.textContent = 'Informe de onde vem o custo.'; erro.classList.remove('hidden'); return; }
     if (!(valorMoeda > 0)) { erro.textContent = 'Informe um valor maior que zero.'; erro.classList.remove('hidden'); return; }
     if (!(cot > 0)) { erro.textContent = 'Informe a cotação usada para converter em R$.'; erro.classList.remove('hidden'); return; }
-    var valor = Math.round(valorMoeda * cot * 100) / 100;
-    var dados = { origem: origem, tipo: $('cTipo').value, valor: valor, moeda: moeda, valorMoeda: valorMoeda, cotacao: cot, data: $('cData').value, situacao: $('cSituacao').value, obs: $('cObs').value.trim() };
+    var dados = { origem: origem, tipo: $('cTipo').value, quem: qq.quem, qtd: qq.qtd, valorPessoa: valorMoeda, valor: 0, moeda: moeda, valorMoeda: valorMoeda, cotacao: cot, data: $('cData').value, situacao: $('cSituacao').value, obs: $('cObs').value.trim() };
+    recalcCusto(dados);
     if (custoEditando) {
       Object.keys(dados).forEach(function (k) { custoEditando[k] = dados[k]; });
     } else {
@@ -982,7 +1142,7 @@
           if (resumoCompleto) {
             if (a.endereco) corpo.appendChild(criar('div', 'muted', a.endereco));
             if (a.detalhe) corpo.appendChild(criar('div', 'muted', a.detalhe));
-            if (a.custo > 0) corpo.appendChild(criar('div', 'muted', App.brl(a.custo)));
+            if (a.custo > 0) corpo.appendChild(criar('div', 'muted', textoCusto(a)));
             if (notaMilhas(a)) corpo.appendChild(criar('div', 'muted', notaMilhas(a)));
           }
           l.appendChild(corpo);
@@ -1033,7 +1193,7 @@
       if (resumoCompleto) lista.forEach(function (c) {
         var d = criar('div', 'row');
         d.style.cssText = 'padding:3px 0 3px 16px;border-top:0';
-        d.appendChild(criar('span', 'muted', c.origem + ' · ' + c.situacao + (c.data ? ' · ' + App.data(c.data) : '') + (c.moeda && c.moeda !== 'BRL' ? ' · ' + fmt2(c.valorMoeda) + ' ' + c.moeda + ' × ' + String(c.cotacao).replace('.', ',') : '') + (c.obs ? ' · ' + c.obs : '')));
+        d.appendChild(criar('span', 'muted', c.origem + ' · ' + c.situacao + (c.data ? ' · ' + App.data(c.data) : '') + (c.moeda && c.moeda !== 'BRL' ? ' · ' + fmt2(c.valorMoeda) + ' ' + c.moeda + ' × ' + String(c.cotacao).replace('.', ',') : '') + (textoPessoas(c, c.valorPessoa, c.moeda) ? ' · ' + textoPessoas(c, c.valorPessoa, c.moeda) : '') + (c.obs ? ' · ' + c.obs : '')));
         d.appendChild(criar('span', 'muted', App.brl(c.valor)));
         cs.appendChild(d);
       });
@@ -1096,15 +1256,20 @@
   });
 
   var ajustarAddFim = ligarFim('hora', 'horaFim');
-  var milhasAdd = criarBlocoMilhas($('milhasAdd'), 'am', 'tipo', 'custo');
+  var milhasAdd;
+  var quemAdd = criarQuem($('quemAdd'), 'qa', 'custo', { rotuloPessoa: 'Custo por pessoa (R$)', rotuloTotal: 'Custo total do grupo (R$)', aoMudar: function () { if (milhasAdd) milhasAdd.atualizar(); } });
+  milhasAdd = criarBlocoMilhas($('milhasAdd'), 'am', 'tipo', 'custo', quemAdd);
+  quemAdd.abrir(null);
   milhasAdd.abrir(null);
   $('form').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var titulo = $('ativTitulo').value.trim();
     if (!titulo) return;
+    var qq = quemAdd.ler();
+    if (qq.erro) return;
     var mm = milhasAdd.ler();
     if (mm.erro) return;
-    inserirAtividade({
+    var nova = {
       id: novoId(),
       dia: diaAtual,
       hora: $('hora').value,
@@ -1113,13 +1278,18 @@
       titulo: titulo,
       endereco: $('endereco').value.trim(),
       detalhe: $('detalhe').value.trim(),
-      custo: mm.custo,
-      custoCheio: mm.custoCheio,
+      quem: qq.quem,
+      qtd: qq.qtd,
+      custoPessoa: qq.valorPessoa,
+      custo: 0,
       milhas: mm.milhas
-    });
+    };
+    recalcAtiv(nova);
+    inserirAtividade(nova);
     salvar();
     ['hora', 'horaFim', 'ativTitulo', 'endereco', 'detalhe', 'custo'].forEach(function (i) { $(i).value = ''; });
     ajustarAddFim();
+    quemAdd.abrir(null);
     milhasAdd.abrir(null);
     desenhar();
     $('ativTitulo').focus();

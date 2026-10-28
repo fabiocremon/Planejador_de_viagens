@@ -67,8 +67,9 @@
             <div class="field"><label for="horaFim">Término (24h)</label><input id="horaFim" type="time" disabled><span class="hint">Opcional. Preencha o horário primeiro.</span></div>
             <div class="field"><label for="tipo">Tipo</label>
               <select id="tipo"><option>Voo</option><option>Hospedagem</option><option selected>Passeio</option><option>Refeição</option><option>Transporte</option><option>Outro</option></select></div>
-            <div class="field"><label for="custo">Custo (R$)</label><input id="custo" inputmode="decimal" placeholder="opcional"></div>
+            <div class="field"><label for="custo">Custo por pessoa (R$)</label><input id="custo" inputmode="decimal" placeholder="opcional"></div>
           </div>
+          <div id="quemAdd"></div>
           <div id="milhasAdd"></div>
           <div class="field"><label for="ativTitulo">O que é</label><input id="ativTitulo" required placeholder="ex.: nome da atração ou do restaurante" autocomplete="off"></div>
           <div class="field"><label for="endereco">Endereço ou local</label><input id="endereco" placeholder="opcional: usado no botão Abrir no mapa" autocomplete="off"></div>
@@ -158,8 +159,9 @@
       <div class="field"><label for="eHoraFim">Término (24h)</label><input id="eHoraFim" type="time" disabled><span class="hint">Opcional.</span></div>
       <div class="field"><label for="eTipo">Tipo</label>
         <select id="eTipo"><option>Voo</option><option>Hospedagem</option><option>Passeio</option><option>Refeição</option><option>Transporte</option><option>Outro</option></select></div>
-      <div class="field"><label for="eCusto">Custo (R$)</label><input id="eCusto" inputmode="decimal" placeholder="opcional" autocomplete="off"></div>
+      <div class="field"><label for="eCusto">Custo por pessoa (R$)</label><input id="eCusto" inputmode="decimal" placeholder="opcional" autocomplete="off"></div>
     </div>
+    <div id="quemEdita"></div>
     <div id="milhasEdita"></div>
     <div class="field"><label for="eTitulo">O que é</label><input id="eTitulo" required autocomplete="off"></div>
     <div class="field"><label for="eEndereco">Endereço ou local</label><input id="eEndereco" autocomplete="off" placeholder="opcional"></div>
@@ -207,11 +209,12 @@
       <div class="field"><label for="cData">Data do gasto</label><input id="cData" type="date"></div>
       <div class="field"><label for="cMoeda">Moeda</label>
         <select id="cMoeda"><option value="BRL" selected>R$ (BRL)</option><option>USD</option><option>EUR</option><option>GBP</option><option>PEN</option><option>ARS</option><option>CLP</option><option>COP</option><option>CAD</option><option>JPY</option></select></div>
-      <div class="field"><label for="cValor" id="cValorRot">Valor (R$)</label><input id="cValor" required inputmode="decimal" placeholder="ex.: 1.250,00" autocomplete="off"></div>
+      <div class="field"><label for="cValor" id="cValorRot">Valor por pessoa (R$)</label><input id="cValor" required inputmode="decimal" placeholder="ex.: 1.250,00" autocomplete="off"></div>
       <div class="field hidden" id="cCotBox"><label for="cCot">Cotação (R$ por 1 <span id="cMoedaNome">USD</span>)</label><input id="cCot" inputmode="decimal" placeholder="ex.: 5,40" autocomplete="off"></div>
       <div class="field"><label for="cSituacao">Situação</label>
         <select id="cSituacao"><option>Previsto</option><option>Pago</option></select></div>
     </div>
+    <div id="quemCusto"></div>
     <div class="field"><label for="cObs">Observação</label><input id="cObs" placeholder="opcional: forma de pagamento, parcelas, reserva…" autocomplete="off"></div>
     <span class="hint hidden" id="cConv" role="status"></span>
     <span class="hint hidden" id="cErro" role="alert"></span>
