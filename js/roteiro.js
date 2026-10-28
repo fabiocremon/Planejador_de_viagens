@@ -171,6 +171,7 @@
       if (a.detalhe) extra.push(a.detalhe);
       if (a.custo > 0) extra.push(App.brl(a.custo));
       if (extra.length) corpo.appendChild(criar('span', 'muted', extra.join(' · ')));
+      if (notaMilhas(a)) corpo.appendChild(criar('span', 'muted', notaMilhas(a)));
       var choques = sobrepostas(a);
       if (choques.length) {
         corpo.appendChild(criar('span', 't-aviso', 'Horário se sobrepõe a: ' + choques.map(function (b) { return b.titulo + ' (' + b.hora + (b.horaFim ? '–' + b.horaFim : '') + ')'; }).join(', ')));
@@ -212,6 +213,7 @@
   // ----- Editar atividade (inclui mover para outro dia) -----
   var dlgAtiv = $('dlgAtiv'), ativEditando = null;
   var ajustarEditaFim = ligarFim('eHora', 'eHoraFim');
+  var milhasEdita = criarBlocoMilhas($('milhasEdita'), 'em', 'eTipo', 'eCusto');
   function abrirAtiv(a) {
     ativEditando = a;
     var sel = $('eDia');
@@ -222,7 +224,9 @@
     ajustarEditaFim();
     $('eHoraFim').value = a.hora ? (a.horaFim || '') : '';
     $('eTipo').value = a.tipo;
-    $('eCusto').value = a.custo > 0 ? a.custo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    var base = a.custoCheio > 0 ? a.custoCheio : a.custo;
+    $('eCusto').value = base > 0 ? base.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    milhasEdita.abrir(a);
     $('eTitulo').value = a.titulo;
     $('eEndereco').value = a.endereco || '';
     $('eDetalhe').value = a.detalhe || '';
@@ -235,11 +239,14 @@
     var a = ativEditando;
     var titulo = $('eTitulo').value.trim();
     if (!a || !titulo) return;
+    var mm = milhasEdita.ler();
+    if (mm.erro) return;
     var novoDia = parseInt($('eDia').value, 10), novaHora = $('eHora').value;
     var reposicionar = novoDia !== a.dia || novaHora !== (a.hora || '');
     a.horaFim = limparFim(novaHora, $('eHoraFim').value);
     a.dia = novoDia; a.hora = novaHora; a.tipo = $('eTipo').value; a.titulo = titulo;
-    a.endereco = $('eEndereco').value.trim(); a.detalhe = $('eDetalhe').value.trim(); a.custo = App.num($('eCusto').value);
+    a.endereco = $('eEndereco').value.trim(); a.detalhe = $('eDetalhe').value.trim();
+    a.custo = mm.custo; a.custoCheio = mm.custoCheio; a.milhas = mm.milhas;
     if (reposicionar) { estado.atividades = estado.atividades.filter(function (x) { return x !== a; }); inserirAtividade(a); }
     salvar(); dlgAtiv.close();
     if (novoDia !== diaAtual) diaAtual = novoDia;
@@ -405,27 +412,27 @@
     desenharOrcamento($('orcBloco'), false);
   }
 
-  // ----- Passagem paga com milhas -----
-  // `valor` do custo é sempre o que entra na conta em R$ (a taxa, se a passagem foi abatida).
-  // `valorCheio` guarda o preço em dinheiro; `milhas` guarda programa, milhas, taxas e a origem da comparação.
-  function notaMilhas(c) {
-    var m = c.milhas;
+  // ----- Voo pago com milhas -----
+  // Na atividade do tipo Voo: `custo` é sempre o que entra na conta em R$ (só as taxas, se a passagem foi abatida).
+  // `custoCheio` guarda o preço em dinheiro; `milhas` guarda programa, milhas, taxas e a origem da comparação.
+  function notaMilhas(a) {
+    var m = a.milhas;
     if (!m || !(m.milhas > 0)) return '';
     var base = App.inteiro(m.milhas) + ' milhas' + (m.programa ? ' ' + m.programa : '') + ' + ' + App.brl(m.taxas || 0) + ' de taxas';
     if (!m.abatido) return 'Alternativa em milhas (não abatida): ' + base;
-    var t = 'Pago com milhas: ' + base + ' · passagem de ' + App.brl(c.valorCheio || 0) + ' abatida do total';
+    var t = 'Pago com milhas: ' + base + ' · passagem de ' + App.brl(a.custoCheio || 0) + ' abatida do total';
     if (m.custoMilheiro > 0) t += ' · milhas ≈ ' + App.brl(m.milhas / 1000 * m.custoMilheiro) + ' (a R$ ' + fmt2(m.custoMilheiro) + ' o milheiro)';
     return t;
   }
   // Soma do que foi abatido e das milhas usadas, por programa.
   function resumoMilhas() {
     var r = { abatido: 0, porPrograma: {}, qtd: 0 };
-    estado.custos.forEach(function (c) {
-      if (!c.milhas || !c.milhas.abatido || !(c.milhas.milhas > 0)) return;
+    estado.atividades.forEach(function (a) {
+      if (!a.milhas || !a.milhas.abatido || !(a.milhas.milhas > 0)) return;
       r.qtd++;
-      r.abatido += (c.valorCheio || 0) - (c.valor || 0);
-      var p = c.milhas.programa || 'milhas';
-      r.porPrograma[p] = (r.porPrograma[p] || 0) + c.milhas.milhas;
+      r.abatido += (a.custoCheio || 0) - (a.custo || 0);
+      var p = a.milhas.programa || 'milhas';
+      r.porPrograma[p] = (r.porPrograma[p] || 0) + a.milhas.milhas;
     });
     return r;
   }
@@ -434,6 +441,117 @@
     if (!r.qtd) return '';
     var usadas = Object.keys(r.porPrograma).map(function (p) { return App.inteiro(r.porPrograma[p]) + ' ' + p; }).join(' · ');
     return 'Milhas usadas: ' + usadas + ' · Abatido do total: ' + App.brl(r.abatido);
+  }
+
+  // Bloco "Pagar com milhas" mostrado só quando o tipo da atividade é Voo (formulário de adicionar e de editar).
+  // Copia os valores de uma comparação salva em Milhas x dinheiro; a caixinha abate a passagem do total.
+  function criarBlocoMilhas(caixa, pref, idTipo, idCusto) {
+    var comp = null; // origem da comparação copiada
+    var el = criar('div', 'field hidden');
+    el.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;gap:10px';
+    el.appendChild(criar('strong', '', 'Pagar com milhas'));
+
+    var fComp = criar('div', 'field');
+    var lComp = criar('label', '', 'Usar uma comparação salva em Milhas x dinheiro'); lComp.setAttribute('for', pref + 'Comp');
+    var sComp = criar('select', ''); sComp.id = pref + 'Comp';
+    fComp.appendChild(lComp); fComp.appendChild(sComp);
+    fComp.appendChild(criar('span', 'hint', 'Os valores são copiados para esta atividade. Depois você pode editar à mão.'));
+    el.appendChild(fComp);
+    var info = criar('span', 'hint hidden', ''); info.setAttribute('role', 'status'); el.appendChild(info);
+
+    var grade = criar('div', 'form-grid'); grade.style.gridTemplateColumns = '1.5fr 1fr 1fr';
+    function campo(rotulo, id, ctl) {
+      var f = criar('div', 'field'); var l = criar('label', '', rotulo); l.setAttribute('for', id); ctl.id = id;
+      f.appendChild(l); f.appendChild(ctl); grade.appendChild(f); return ctl;
+    }
+    var sProg = campo('Programa', pref + 'Prog', criar('select', ''));
+    App.programas.forEach(function (p) { sProg.appendChild(criar('option', '', p)); });
+    var iMil = campo('Milhas', pref + 'Milhas', criar('input', '')); iMil.setAttribute('inputmode', 'numeric'); iMil.placeholder = 'ex.: 60.000'; iMil.autocomplete = 'off';
+    var iTax = campo('Taxas (R$)', pref + 'Taxas', criar('input', '')); iTax.setAttribute('inputmode', 'decimal'); iTax.placeholder = 'ex.: 180,00'; iTax.autocomplete = 'off';
+    el.appendChild(grade);
+
+    var rot = criar('label', 'lemb-check'); rot.setAttribute('for', pref + 'Abater');
+    var cb = criar('input', ''); cb.type = 'checkbox'; cb.id = pref + 'Abater';
+    rot.appendChild(cb); rot.appendChild(criar('span', '', 'Pago com milhas: abater a passagem do total (conta só as taxas)'));
+    el.appendChild(rot);
+    var aviso = criar('span', 'hint hidden', ''); aviso.setAttribute('role', 'status'); el.appendChild(aviso);
+    var erro = criar('span', 't-alerta hidden', ''); erro.setAttribute('role', 'alert'); el.appendChild(erro);
+    caixa.appendChild(el);
+
+    function custoDigitado() { return App.num($(idCusto).value); }
+    function visivel() { return $(idTipo).value === 'Voo'; }
+    function atualizarAviso() {
+      var cheio = custoDigitado(), taxas = App.num(iTax.value);
+      if (cb.checked && cheio > 0) {
+        aviso.textContent = 'No total entra só a taxa: ' + App.brl(taxas) + ' (abate ' + App.brl(Math.max(0, cheio - taxas)) + ').';
+        aviso.classList.remove('hidden');
+      } else aviso.classList.add('hidden');
+      erro.classList.add('hidden');
+    }
+    function atualizarVisibilidade() { el.classList.toggle('hidden', !visivel()); }
+    function listar() {
+      var lista = App.ler('milhas_salvas', []).slice().reverse();
+      sComp.textContent = '';
+      var o0 = criar('option', '', lista.length ? '— não usar —' : 'Nenhuma comparação salva em Milhas x dinheiro'); o0.value = '';
+      sComp.appendChild(o0);
+      lista.forEach(function (c) {
+        var o = criar('option', '', c.nome + ' · ' + c.prog + (c.consulta ? ' · consulta de ' + App.data(c.consulta) : '')); o.value = c.id; sComp.appendChild(o);
+      });
+      sComp.disabled = !lista.length;
+    }
+    function textoOrigem() {
+      if (!comp) { info.classList.add('hidden'); return; }
+      info.textContent = 'Baseado em "' + comp.nome + '"' + (comp.consulta ? ' (consulta de ' + App.data(comp.consulta) + ')' : '') + (comp.fonte ? ', fonte: ' + comp.fonte : '') + '.';
+      info.classList.remove('hidden');
+    }
+    sComp.addEventListener('change', function () {
+      comp = null;
+      var c = App.ler('milhas_salvas', []).filter(function (x) { return x.id === sComp.value; })[0];
+      if (!c) { info.classList.add('hidden'); return; }
+      comp = { nome: c.nome, consulta: c.consulta || '', fonte: c.fonte || '', custoMilheiro: c.custo > 0 ? c.custo : 0 };
+      $(idCusto).value = fmt2(c.dinheiro);
+      iMil.value = App.inteiro(c.milhas);
+      iTax.value = fmt2(c.taxas || 0);
+      sProg.value = c.prog;
+      // Os dois cenários lado a lado; quem decide é você (marque a caixinha para pagar com milhas).
+      info.textContent = 'Copiado de "' + c.nome + '"' + (c.consulta ? ' (consulta de ' + App.data(c.consulta) + ')' : '') + (c.fonte ? ', fonte: ' + c.fonte : '') +
+        '. Dinheiro: ' + App.brl(c.dinheiro) + ' · Milhas: ' + App.inteiro(c.milhas) + ' + ' + App.brl(c.taxas || 0) + ' de taxas' +
+        (c.custo > 0 ? ' (milhas ≈ ' + App.brl(c.milhas / 1000 * c.custo) + ' a R$ ' + fmt2(c.custo) + ' o milheiro)' : '') + '.';
+      info.classList.remove('hidden');
+      atualizarAviso();
+    });
+    [$(idCusto), iTax].forEach(function (i) { i.addEventListener('input', atualizarAviso); });
+    cb.addEventListener('change', atualizarAviso);
+    $(idTipo).addEventListener('change', atualizarVisibilidade);
+
+    return {
+      // Prepara o bloco (a: atividade em edição, ou nada para uma atividade nova).
+      abrir: function (a) {
+        listar();
+        var m = a && a.milhas ? a.milhas : null;
+        comp = m && m.comparacao ? { nome: m.comparacao.nome, consulta: m.comparacao.consulta, fonte: m.comparacao.fonte, custoMilheiro: m.custoMilheiro || 0 } : null;
+        sProg.value = m && m.programa ? m.programa : App.programas[0];
+        iMil.value = m && m.milhas > 0 ? App.inteiro(m.milhas) : '';
+        iTax.value = m && m.taxas != null ? fmt2(m.taxas) : '';
+        cb.checked = !!(m && m.abatido);
+        textoOrigem(); atualizarVisibilidade(); atualizarAviso();
+      },
+      // Lê o bloco. Devolve { erro: true } se faltar algo, ou { milhas: objeto|null, custo, custoCheio }.
+      ler: function () {
+        var cheio = custoDigitado();
+        if (!visivel()) return { milhas: null, custo: cheio, custoCheio: cheio };
+        var qtd = App.num(iMil.value), taxas = App.num(iTax.value), abater = cb.checked;
+        function falha(t) { erro.textContent = t; erro.classList.remove('hidden'); return { erro: true }; }
+        if (abater && !(qtd > 0)) return falha('Informe as milhas usadas para abater a passagem.');
+        if (abater && !iTax.value.trim()) return falha('Informe as taxas em R$ (use 0 se não houver).');
+        if (abater && !(cheio > 0)) return falha('Informe o custo em R$ da passagem (campo Custo) para poder abatê-lo.');
+        if (!(qtd > 0)) return { milhas: null, custo: cheio, custoCheio: cheio };
+        var m = { programa: sProg.value, milhas: qtd, taxas: taxas, abatido: abater };
+        if (comp) { m.comparacao = { nome: comp.nome, consulta: comp.consulta, fonte: comp.fonte }; if (comp.custoMilheiro > 0) m.custoMilheiro = comp.custoMilheiro; }
+        return { milhas: m, custo: abater ? Math.round(taxas * 100) / 100 : cheio, custoCheio: cheio };
+      },
+      atualizar: function () { atualizarVisibilidade(); atualizarAviso(); }
+    };
   }
 
   // ----- Custos lançados (+) -----
@@ -450,7 +568,7 @@
     caixa.textContent = '';
     var totalLanc = 0, pago = 0, previsto = 0, totalAtiv = 0;
     estado.custos.forEach(function (c) { totalLanc += c.valor; if (c.situacao === 'Pago') pago += c.valor; else previsto += c.valor; });
-    var comCusto = estado.atividades.filter(function (a) { return a.custo > 0; });
+    var comCusto = estado.atividades.filter(function (a) { return a.custo > 0 || (a.milhas && a.milhas.abatido); });
     comCusto.forEach(function (a) { totalAtiv += a.custo; });
 
     // Resumo
@@ -497,8 +615,6 @@
         var o = criar('td', ''); o.style.whiteSpace = 'normal';
         o.appendChild(criar('strong', '', c.origem));
         if (c.moeda && c.moeda !== 'BRL') { var mo = criar('div', 'muted', fmt2(c.valorMoeda) + ' ' + c.moeda + ' × R$ ' + String(c.cotacao).replace('.', ',')); mo.style.fontSize = '12px'; o.appendChild(mo); }
-        var nm = notaMilhas(c);
-        if (nm) { var nmEl = criar('div', 'muted', nm); nmEl.style.fontSize = '12px'; o.appendChild(nmEl); }
         if (c.obs) { var ob = criar('div', 'muted', c.obs); ob.style.fontSize = '12px'; o.appendChild(ob); }
         tr.appendChild(o);
         tr.appendChild(celula('td', c.data ? App.data(c.data) : '—'));
@@ -538,7 +654,9 @@
       var tb = criar('tbody', '');
       comCusto.slice().sort(function (a, b) { return a.dia - b.dia || (a.hora || '').localeCompare(b.hora || ''); }).forEach(function (a) {
         var tr = criar('tr', '');
-        var o = criar('td', ''); o.style.whiteSpace = 'normal'; o.appendChild(criar('strong', '', a.titulo)); tr.appendChild(o);
+        var o = criar('td', ''); o.style.whiteSpace = 'normal'; o.appendChild(criar('strong', '', a.titulo));
+        if (notaMilhas(a)) { var nm = criar('div', 'muted', notaMilhas(a)); nm.style.fontSize = '12px'; o.appendChild(nm); }
+        tr.appendChild(o);
         tr.appendChild(celula('td', rotuloDia(a.dia)));
         tr.appendChild(celula('td', a.tipo));
         tr.appendChild(celula('td', App.brl(a.custo)));
@@ -574,62 +692,6 @@
 
   function fmt2(n) { return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-  // Bloco "Pagar com milhas": só para passagem aérea em R$.
-  var comparacaoSel = null; // origem da comparação copiada (nome, consulta, fonte, custo do milheiro)
-  App.programas.forEach(function (p) { var o = criar('option', '', p); $('cProg').appendChild(o); });
-
-  function comparacoesSalvas() { return App.ler('milhas_salvas', []).slice().reverse(); }
-  function preencherComparacoes() {
-    var sel = $('cComparacao'), lista = comparacoesSalvas();
-    sel.textContent = '';
-    var o0 = criar('option', '', lista.length ? '— não usar —' : 'Nenhuma comparação salva em Milhas x dinheiro');
-    o0.value = '';
-    sel.appendChild(o0);
-    lista.forEach(function (s) {
-      var o = criar('option', '', s.nome + ' · ' + s.prog + (s.consulta ? ' · consulta de ' + App.data(s.consulta) : ''));
-      o.value = s.id;
-      sel.appendChild(o);
-    });
-    sel.disabled = !lista.length;
-  }
-  function mostrarBlocoMilhas() {
-    var vis = $('cTipo').value === 'Passagem aérea' && moedaSel() === 'BRL';
-    $('cMilhasBox').classList.toggle('hidden', !vis);
-    return vis;
-  }
-  function atualizarAbater() {
-    var info = $('cAbaterInfo');
-    var cheio = App.num($('cValor').value), taxas = App.num($('cTaxas').value);
-    if ($('cAbater').checked && cheio > 0) {
-      info.textContent = 'No total entra só a taxa: ' + App.brl(taxas) + ' (abate ' + App.brl(Math.max(0, cheio - taxas)) + ').';
-      info.classList.remove('hidden');
-    } else info.classList.add('hidden');
-  }
-  $('cComparacao').addEventListener('change', function () {
-    var id = $('cComparacao').value, info = $('cCompInfo');
-    comparacaoSel = null;
-    if (!id) { info.classList.add('hidden'); return; }
-    var s = App.ler('milhas_salvas', []).filter(function (x) { return x.id === id; })[0];
-    if (!s) return;
-    comparacaoSel = { nome: s.nome, consulta: s.consulta || '', fonte: s.fonte || '' };
-    $('cValor').value = fmt2(s.dinheiro);
-    $('cMilhas').value = App.inteiro(s.milhas);
-    $('cTaxas').value = fmt2(s.taxas || 0);
-    $('cProg').value = s.prog;
-    if (!$('cOrigem').value.trim()) $('cOrigem').value = s.nome;
-    // Os dois cenários lado a lado; quem decide é você (marque a caixinha para pagar com milhas).
-    info.textContent = 'Copiado de "' + s.nome + '"' + (s.consulta ? ' (consulta de ' + App.data(s.consulta) + ')' : '') + (s.fonte ? ', fonte: ' + s.fonte : '') +
-      '. Dinheiro: ' + App.brl(s.dinheiro) + ' · Milhas: ' + App.inteiro(s.milhas) + ' + ' + App.brl(s.taxas || 0) + ' de taxas' +
-      (s.custo > 0 ? ' (milhas ≈ ' + App.brl(s.milhas / 1000 * s.custo) + ' a R$ ' + fmt2(s.custo) + ' o milheiro)' : '') + '.';
-    info.classList.remove('hidden');
-    comparacaoSel.custoMilheiro = s.custo > 0 ? s.custo : 0;
-    atualizarMoeda(); atualizarAbater();
-  });
-  ['cValor', 'cTaxas'].forEach(function (id) { $(id).addEventListener('input', atualizarAbater); });
-  $('cAbater').addEventListener('change', atualizarAbater);
-  $('cTipo').addEventListener('change', mostrarBlocoMilhas);
-  $('cMoeda').addEventListener('change', mostrarBlocoMilhas);
-
   function abrirCusto(c) {
     custoEditando = c || null;
     $('custoTitulo').textContent = c ? 'Editar custo' : 'Adicionar custo';
@@ -638,25 +700,13 @@
     $('cTipo').value = c ? c.tipo : 'Passagem aérea';
     var est = c && c.moeda && c.moeda !== 'BRL';
     $('cMoeda').value = est ? c.moeda : 'BRL';
-    $('cValor').value = c ? fmt2(est ? c.valorMoeda : (c.valorCheio != null ? c.valorCheio : c.valor)) : '';
+    $('cValor').value = c ? fmt2(est ? c.valorMoeda : c.valor) : '';
     $('cCot').value = est ? String(c.cotacao).replace('.', ',') : '';
     $('cData').value = c ? (c.data || '') : '';
     $('cSituacao').value = c ? c.situacao : 'Previsto';
     $('cObs').value = c ? (c.obs || '') : '';
     $('cErro').classList.add('hidden');
-    preencherComparacoes();
-    var m = c && c.milhas ? c.milhas : null;
-    comparacaoSel = m && m.comparacao ? { nome: m.comparacao.nome, consulta: m.comparacao.consulta, fonte: m.comparacao.fonte, custoMilheiro: m.custoMilheiro || 0 } : null;
-    $('cProg').value = m && m.programa ? m.programa : App.programas[0];
-    $('cMilhas').value = m && m.milhas > 0 ? App.inteiro(m.milhas) : '';
-    $('cTaxas').value = m && m.taxas != null ? fmt2(m.taxas) : '';
-    $('cAbater').checked = !!(m && m.abatido);
-    var ci = $('cCompInfo');
-    if (comparacaoSel) { ci.textContent = 'Baseado em "' + comparacaoSel.nome + '"' + (comparacaoSel.consulta ? ' (consulta de ' + App.data(comparacaoSel.consulta) + ')' : '') + (comparacaoSel.fonte ? ', fonte: ' + comparacaoSel.fonte : '') + '.'; ci.classList.remove('hidden'); }
-    else ci.classList.add('hidden');
     atualizarMoeda();
-    mostrarBlocoMilhas();
-    atualizarAbater();
     dlgCusto.showModal();
     $('cOrigem').focus();
   }
@@ -671,19 +721,8 @@
     if (!origem) { erro.textContent = 'Informe de onde vem o custo.'; erro.classList.remove('hidden'); return; }
     if (!(valorMoeda > 0)) { erro.textContent = 'Informe um valor maior que zero.'; erro.classList.remove('hidden'); return; }
     if (!(cot > 0)) { erro.textContent = 'Informe a cotação usada para converter em R$.'; erro.classList.remove('hidden'); return; }
-    var valorCheio = Math.round(valorMoeda * cot * 100) / 100;
-    var valor = valorCheio, milhas = null;
-    if (mostrarBlocoMilhas()) {
-      var qtd = App.num($('cMilhas').value), taxas = App.num($('cTaxas').value), abater = $('cAbater').checked;
-      if (abater && !(qtd > 0)) { erro.textContent = 'Informe as milhas usadas para abater a passagem.'; erro.classList.remove('hidden'); return; }
-      if (abater && !$('cTaxas').value.trim()) { erro.textContent = 'Informe as taxas em R$ (use 0 se não houver).'; erro.classList.remove('hidden'); return; }
-      if (qtd > 0) {
-        milhas = { programa: $('cProg').value, milhas: qtd, taxas: taxas, abatido: abater };
-        if (comparacaoSel) { milhas.comparacao = { nome: comparacaoSel.nome, consulta: comparacaoSel.consulta, fonte: comparacaoSel.fonte }; if (comparacaoSel.custoMilheiro > 0) milhas.custoMilheiro = comparacaoSel.custoMilheiro; }
-        if (abater) valor = Math.round(taxas * 100) / 100;
-      }
-    }
-    var dados = { origem: origem, tipo: $('cTipo').value, valor: valor, valorCheio: valorCheio, milhas: milhas, moeda: moeda, valorMoeda: valorMoeda, cotacao: cot, data: $('cData').value, situacao: $('cSituacao').value, obs: $('cObs').value.trim() };
+    var valor = Math.round(valorMoeda * cot * 100) / 100;
+    var dados = { origem: origem, tipo: $('cTipo').value, valor: valor, moeda: moeda, valorMoeda: valorMoeda, cotacao: cot, data: $('cData').value, situacao: $('cSituacao').value, obs: $('cObs').value.trim() };
     if (custoEditando) {
       Object.keys(dados).forEach(function (k) { custoEditando[k] = dados[k]; });
     } else {
@@ -944,6 +983,7 @@
             if (a.endereco) corpo.appendChild(criar('div', 'muted', a.endereco));
             if (a.detalhe) corpo.appendChild(criar('div', 'muted', a.detalhe));
             if (a.custo > 0) corpo.appendChild(criar('div', 'muted', App.brl(a.custo)));
+            if (notaMilhas(a)) corpo.appendChild(criar('div', 'muted', notaMilhas(a)));
           }
           l.appendChild(corpo);
           bloco.appendChild(l);
@@ -993,7 +1033,7 @@
       if (resumoCompleto) lista.forEach(function (c) {
         var d = criar('div', 'row');
         d.style.cssText = 'padding:3px 0 3px 16px;border-top:0';
-        d.appendChild(criar('span', 'muted', c.origem + ' · ' + c.situacao + (c.data ? ' · ' + App.data(c.data) : '') + (c.moeda && c.moeda !== 'BRL' ? ' · ' + fmt2(c.valorMoeda) + ' ' + c.moeda + ' × ' + String(c.cotacao).replace('.', ',') : '') + (notaMilhas(c) ? ' · ' + notaMilhas(c) : '') + (c.obs ? ' · ' + c.obs : '')));
+        d.appendChild(criar('span', 'muted', c.origem + ' · ' + c.situacao + (c.data ? ' · ' + App.data(c.data) : '') + (c.moeda && c.moeda !== 'BRL' ? ' · ' + fmt2(c.valorMoeda) + ' ' + c.moeda + ' × ' + String(c.cotacao).replace('.', ',') : '') + (c.obs ? ' · ' + c.obs : '')));
         d.appendChild(criar('span', 'muted', App.brl(c.valor)));
         cs.appendChild(d);
       });
@@ -1056,10 +1096,14 @@
   });
 
   var ajustarAddFim = ligarFim('hora', 'horaFim');
+  var milhasAdd = criarBlocoMilhas($('milhasAdd'), 'am', 'tipo', 'custo');
+  milhasAdd.abrir(null);
   $('form').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var titulo = $('ativTitulo').value.trim();
     if (!titulo) return;
+    var mm = milhasAdd.ler();
+    if (mm.erro) return;
     inserirAtividade({
       id: novoId(),
       dia: diaAtual,
@@ -1069,11 +1113,14 @@
       titulo: titulo,
       endereco: $('endereco').value.trim(),
       detalhe: $('detalhe').value.trim(),
-      custo: App.num($('custo').value)
+      custo: mm.custo,
+      custoCheio: mm.custoCheio,
+      milhas: mm.milhas
     });
     salvar();
     ['hora', 'horaFim', 'ativTitulo', 'endereco', 'detalhe', 'custo'].forEach(function (i) { $(i).value = ''; });
     ajustarAddFim();
+    milhasAdd.abrir(null);
     desenhar();
     $('ativTitulo').focus();
   });

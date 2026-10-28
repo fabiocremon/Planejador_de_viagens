@@ -69,6 +69,7 @@
               <select id="tipo"><option>Voo</option><option>Hospedagem</option><option selected>Passeio</option><option>Refeição</option><option>Transporte</option><option>Outro</option></select></div>
             <div class="field"><label for="custo">Custo (R$)</label><input id="custo" inputmode="decimal" placeholder="opcional"></div>
           </div>
+          <div id="milhasAdd"></div>
           <div class="field"><label for="ativTitulo">O que é</label><input id="ativTitulo" required placeholder="ex.: nome da atração ou do restaurante" autocomplete="off"></div>
           <div class="field"><label for="endereco">Endereço ou local</label><input id="endereco" placeholder="opcional: usado no botão Abrir no mapa" autocomplete="off"></div>
           <div class="field"><label for="detalhe">Detalhes</label><input id="detalhe" placeholder="endereço, confirmação, horário de funcionamento…" autocomplete="off"></div>
@@ -159,6 +160,7 @@
         <select id="eTipo"><option>Voo</option><option>Hospedagem</option><option>Passeio</option><option>Refeição</option><option>Transporte</option><option>Outro</option></select></div>
       <div class="field"><label for="eCusto">Custo (R$)</label><input id="eCusto" inputmode="decimal" placeholder="opcional" autocomplete="off"></div>
     </div>
+    <div id="milhasEdita"></div>
     <div class="field"><label for="eTitulo">O que é</label><input id="eTitulo" required autocomplete="off"></div>
     <div class="field"><label for="eEndereco">Endereço ou local</label><input id="eEndereco" autocomplete="off" placeholder="opcional"></div>
     <div class="field"><label for="eDetalhe">Detalhes</label><input id="eDetalhe" autocomplete="off"></div>
@@ -209,19 +211,6 @@
       <div class="field hidden" id="cCotBox"><label for="cCot">Cotação (R$ por 1 <span id="cMoedaNome">USD</span>)</label><input id="cCot" inputmode="decimal" placeholder="ex.: 5,40" autocomplete="off"></div>
       <div class="field"><label for="cSituacao">Situação</label>
         <select id="cSituacao"><option>Previsto</option><option>Pago</option></select></div>
-    </div>
-    <div class="field hidden" id="cMilhasBox" style="border:1px solid var(--border);border-radius:10px;padding:12px;gap:10px">
-      <strong>Pagar com milhas</strong>
-      <div class="field"><label for="cComparacao">Usar uma comparação salva em Milhas x dinheiro</label><select id="cComparacao"></select>
-        <span class="hint">Os valores são copiados para este custo. Depois você pode editar à mão.</span></div>
-      <span class="hint hidden" id="cCompInfo" role="status"></span>
-      <div class="form-grid" style="grid-template-columns:1.5fr 1fr 1fr">
-        <div class="field"><label for="cProg">Programa</label><select id="cProg"></select></div>
-        <div class="field"><label for="cMilhas">Milhas</label><input id="cMilhas" inputmode="numeric" placeholder="ex.: 60.000" autocomplete="off"></div>
-        <div class="field"><label for="cTaxas">Taxas (R$)</label><input id="cTaxas" inputmode="decimal" placeholder="ex.: 180,00" autocomplete="off"></div>
-      </div>
-      <label class="lemb-check" for="cAbater"><input type="checkbox" id="cAbater"><span>Pago com milhas: abater a passagem do total (conta só as taxas)</span></label>
-      <span class="hint hidden" id="cAbaterInfo" role="status"></span>
     </div>
     <div class="field"><label for="cObs">Observação</label><input id="cObs" placeholder="opcional: forma de pagamento, parcelas, reserva…" autocomplete="off"></div>
     <span class="hint hidden" id="cConv" role="status"></span>
