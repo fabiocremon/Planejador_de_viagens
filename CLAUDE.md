@@ -51,13 +51,13 @@ Suportar **tema claro e escuro** (alternância manual + respeitar `prefers-color
 - Datas no formato **DD/MM/AAAA**; horários em 24h, sempre com o fuso do destino quando relevante.
 
 ## Estrutura do projeto
-- **Pasta principal:** `C:\Users\inss\OneDrive - INSS\Documentos\Claude\Planejador de viagens`
+- **Pasta principal:** `C:\Users\Usuario\Documents\Claude\Planejador_de_viagens-2.0.0`
 - **Deploy:** nenhum por enquanto. Tudo roda localmente / fica no OneDrive.
 - **Ferramentas:** HTML/CSS/JS puro, sem frameworks. Abrir `index.html` no navegador.
 - **Arquivos:** `index.html` (painel), `roteiro.html` (resumo, dias, aba Reservas e documentos, custos com orçamento e moeda, lembretes, ideias, exportar .ics), `reservas.html` (só redireciona para a aba Reservas e documentos do Roteiro), `milhas.html`, `dicas.html` (guia de dicas com abas e cartões clicáveis; dados em `js/dicas-dados.js`), `voos.html` (buscas salvas e histórico de preços digitados), `css/estilo.css` (tema e componentes), `js/app.js` (tema, menu, armazenamento), `js/grafico.js` (gráfico de linhas compartilhado), `js/painel.js` (viagens salvas, valor do milheiro com gráfico e saldos), `js/backup.js` (exportar e importar dados em .json), `js/roteiro.js`, `js/reservas.js`, `js/milhas.js`, `js/milheiro.js` (calculadora do valor do milheiro com bonificação, na página Milhas), `js/voos.js`, `js/dicas.js`, `js/dicas-dados.js`; `como-usar.html` (guia de uso do próprio programa).
 - **Convenções:** cores só por variáveis CSS; texto digitado pelo usuário entra na tela com `textContent` (nunca `innerHTML`); número no formato brasileiro via `App.num`.
 - **Pendente:** comparar destinos ainda não existe. Orçamento (meta, moeda estrangeira) fica no Roteiro; reservas e documentos na aba do Roteiro (`js/reservas.js`).
-- **Versão anterior:** a v1 (antes de reservas, orçamento, calendário e prazos) está na branch `v1-estavel` do GitHub e na pasta `versoes/v1-2026-10-21`.
+- **Versão anterior:** a v1 (antes de reservas, orçamento, calendário e prazos) está na branch `v1-estavel` do GitHub.
 - Organize por viagem quando houver mais de uma (ex.: uma subpasta por destino e ano).
 
 ## O que Claude NUNCA deve fazer
