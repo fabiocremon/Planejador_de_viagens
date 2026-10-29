@@ -10,17 +10,38 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
-  document.getElementById('bkExportar').addEventListener('click', function () {
+  // Lê tudo do navegador e devolve o pacote, ou null (já avisando o motivo).
+  function montarPacote() {
     var dados = {};
     try {
       for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i);
         if (k.indexOf(PREFIXO) === 0) dados[k.slice(PREFIXO.length)] = JSON.parse(localStorage.getItem(k));
       }
-    } catch (e) { aviso('Não foi possível ler os dados deste navegador.'); return; }
-    var n = Object.keys(dados).length;
-    if (!n) { aviso('Ainda não há dados para exportar.'); return; }
-    var pacote = { app: 'planejador-de-viagens', versao: 1, exportadoEm: new Date().toISOString(), dados: dados };
+    } catch (e) { aviso('Não foi possível ler os dados deste navegador.'); return null; }
+    if (!Object.keys(dados).length) { aviso('Ainda não há dados para exportar.'); return null; }
+    return { app: 'planejador-de-viagens', versao: 1, exportadoEm: new Date().toISOString(), dados: dados };
+  }
+
+  // Compartilhar (celular): envia como .txt, que o WhatsApp e outros apps aceitam; a importação lê o mesmo conteúdo.
+  var bkComp = document.getElementById('bkCompartilhar');
+  function arquivoTxt(pacote) {
+    return new File([JSON.stringify(pacote, null, 2)], 'planejador-viagens-' + hoje() + '.txt', { type: 'text/plain' });
+  }
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [new File(['x'], 'a.txt', { type: 'text/plain' })] })) bkComp.classList.remove('hidden');
+  } catch (e) { /* sem suporte: o botão continua escondido */ }
+  bkComp.addEventListener('click', function () {
+    var pacote = montarPacote();
+    if (!pacote) return;
+    navigator.share({ files: [arquivoTxt(pacote)], title: 'Backup do Planejador de viagens' })
+      .then(function () { aviso('Backup compartilhado. Guarde o arquivo: ele tem os dados das suas viagens.'); })
+      .catch(function (e) { if (e && e.name !== 'AbortError') aviso('Não foi possível compartilhar. Use Exportar dados.'); });
+  });
+
+  document.getElementById('bkExportar').addEventListener('click', function () {
+    var pacote = montarPacote();
+    if (!pacote) return;
     var blob = new Blob([JSON.stringify(pacote, null, 2)], { type: 'application/json' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);

@@ -114,12 +114,12 @@
     voos: '<path d="M17.8 19.2 16 11l3.5-3.5a2.1 2.1 0 0 0-3-3L13 8 4.8 6.2 3.5 7.5l6.7 3.7-3 3-2.7-.5L3 15l4 2 2 4 1.3-1.5-.5-2.7 3-3 3.7 6.7z"/>'
   };
   var PAGINAS = [
-    ['index', 'index.html', 'Painel', 'painel'],
-    ['roteiro', 'roteiro.html', 'Roteiro', 'roteiro'],
-    ['voos', 'voos.html', 'Voos', 'voos'],
-    ['milhas', 'milhas.html', 'Milhas x dinheiro', 'milhas'],
-    ['dicas', 'dicas.html', 'Dicas', 'dicas'],
-    ['como-usar', 'como-usar.html', 'Como usar o planejador', 'ajuda']
+    ['index', 'index.html', 'Painel', 'painel', 'Painel'],
+    ['roteiro', 'roteiro.html', 'Roteiro', 'roteiro', 'Roteiro'],
+    ['voos', 'voos.html', 'Voos', 'voos', 'Voos'],
+    ['milhas', 'milhas.html', 'Milhas x dinheiro', 'milhas', 'Milhas'],
+    ['dicas', 'dicas.html', 'Dicas', 'dicas', 'Dicas'],
+    ['como-usar', 'como-usar.html', 'Como usar o planejador', 'ajuda', 'Ajuda']
   ];
 
   function svg(caminho, tam) {
@@ -132,7 +132,7 @@
     var atual = document.body.getAttribute('data-pagina');
     function montarLinks(lista) {
       return lista.map(function (p) {
-        return '<a href="' + p[1] + '" title="' + p[2] + '"' + (p[0] === atual ? ' class="on" aria-current="page"' : '') + '>' + svg(ICONES[p[3]], 20) + '<span class="rot">' + p[2] + '</span></a>';
+        return '<a href="' + p[1] + '" title="' + p[2] + '"' + (p[0] === atual ? ' class="on" aria-current="page"' : '') + '>' + svg(ICONES[p[3]], 20) + '<span class="rot">' + p[2] + '</span><span class="rotc" aria-hidden="true">' + p[4] + '</span></a>';
       }).join('');
     }
     // Dicas e Como usar ficam abaixo da linha separadora.

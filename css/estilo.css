@@ -350,3 +350,24 @@ dialog .card { border: 0; padding: 0; background: transparent; }
 .guia-lista { margin-top: 10px; }
 .guia-card .btn { align-self: flex-start; margin-top: auto; text-decoration: none; display: inline-flex; align-items: center; }
 code { background: var(--soft); padding: 1px 6px; border-radius: 6px; font-size: 13px; }
+
+/* Celular: menu vira barra de abas fixa no rodapé; alvos de toque e campos maiores */
+.rotc { display: none; }
+@media (max-width: 640px) {
+  .app, .app.recolhido { display: block; min-height: 0; }
+  .app .side, .app.recolhido .side { position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 20; height: auto; min-height: 0; flex-direction: row; align-items: stretch; justify-content: space-around; gap: 0; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); border: 0; border-top: 1px solid var(--border); overflow: visible; }
+  .app .brand, .app .theme, .app .recolher, .app.recolhido .brand, .app.recolhido .theme { display: none; }
+  .app .nav, .app .theme-box { display: contents; }
+  .app .nav a, .app.recolhido .nav a { flex: 1 1 0; min-width: 0; min-height: 52px; flex-direction: column; justify-content: center; gap: 2px; padding: 0 2px; border-radius: 10px; font-size: 10.5px; text-align: center; }
+  .app .nav .rot, .app.recolhido .nav .rot { display: none; }
+  .app .nav .rotc, .app.recolhido .nav .rotc { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app .tema-mini, .app.recolhido .tema-mini { display: inline-flex; flex: 0 0 44px; width: 44px; height: auto; min-height: 52px; align-self: center; border: 0; background: transparent; }
+  .main { padding: 20px 16px calc(96px + env(safe-area-inset-bottom)); gap: 20px; }
+  h1 { font-size: 24px; }
+  .card { padding: 16px; border-radius: 14px; }
+  .btn.link { min-height: 44px; padding: 0 12px; }
+  input, select, textarea, .field input, .field select, input.mini { font-size: 16px; }
+  input.mini { min-height: 40px; }
+  dialog { max-height: calc(100dvh - 24px); overflow-y: auto; padding: 18px; }
+  .head > .btn, .head > div > .btn { flex: 1 1 auto; }
+}

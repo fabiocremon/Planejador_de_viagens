@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Painel — Planejador de viagens</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -84,10 +84,11 @@
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn sec" type="button" id="bkExportar">Exportar dados</button>
           <button class="btn sec" type="button" id="bkImportar">Importar dados</button>
+          <button class="btn sec hidden" type="button" id="bkCompartilhar">Compartilhar</button>
         </div>
       </div>
-      <span class="hint" id="bkMsg" role="status">Os dados ficam só neste navegador. Exporte para gerar um arquivo e importe no outro computador.</span>
-      <input type="file" id="bkArquivo" accept="application/json,.json" class="hidden" aria-label="Arquivo de backup">
+      <span class="hint" id="bkMsg" role="status">Os dados ficam só neste navegador. Exporte para gerar um arquivo e importe no outro aparelho. No celular, use Compartilhar (o arquivo vai como .txt, que o WhatsApp aceita).</span>
+      <input type="file" id="bkArquivo" accept="application/json,.json,text/plain,.txt" class="hidden" aria-label="Arquivo de backup">
     </section>
   </main>
 </div>
