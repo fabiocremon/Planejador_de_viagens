@@ -1261,6 +1261,15 @@
   milhasAdd = criarBlocoMilhas($('milhasAdd'), 'am', 'tipo', 'custo', quemAdd);
   quemAdd.abrir(null);
   milhasAdd.abrir(null);
+  // Celular: o formulário abre em tela cheia pelo botão "+ Atividade" (no computador fica sempre visível).
+  function abrirAdd(sim) {
+    $('form').classList.toggle('aberto', sim);
+    document.body.style.overflow = sim ? 'hidden' : '';
+    if (sim) $('ativTitulo').focus();
+  }
+  $('abrirAdd').addEventListener('click', function () { abrirAdd(true); });
+  $('fecharAdd').addEventListener('click', function () { abrirAdd(false); });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && $('form').classList.contains('aberto')) abrirAdd(false); });
   $('form').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var titulo = $('ativTitulo').value.trim();
@@ -1292,7 +1301,8 @@
     quemAdd.abrir(null);
     milhasAdd.abrir(null);
     desenhar();
-    $('ativTitulo').focus();
+    if ($('form').classList.contains('aberto')) abrirAdd(false);
+    else $('ativTitulo').focus();
   });
 
   // Aba Reservas e documentos (mesmo estado do roteiro, para os salvamentos não se sobrescreverem).

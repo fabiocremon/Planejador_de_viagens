@@ -56,12 +56,14 @@
               <button class="btn link" type="button" id="duplicarDia">Duplicar dia</button>
               <button class="btn link" type="button" id="removerDia">Remover dia</button>
             </div></div>
+          <button class="btn so-celular" type="button" id="abrirAdd" style="align-self:flex-start;margin-top:10px">+ Atividade</button>
           <div id="lista"></div>
           <p class="muted hidden" id="vazio" style="margin:0">Nenhuma atividade neste dia ainda.</p>
         </section>
 
         <form class="card" id="form" aria-label="Adicionar atividade" style="display:flex;flex-direction:column;gap:14px">
-          <h2>Adicionar atividade</h2>
+          <div class="row first" style="padding-top:0"><h2>Adicionar atividade</h2>
+            <button class="btn link so-celular" type="button" id="fecharAdd">Fechar</button></div>
           <div class="form-grid">
             <div class="field"><label for="hora">Horário (24h)</label><input id="hora" type="time"></div>
             <div class="field"><label for="horaFim">Término (24h)</label><input id="horaFim" type="time" disabled><span class="hint">Opcional. Preencha o horário primeiro.</span></div>
